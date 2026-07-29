@@ -1,0 +1,23 @@
+name: Bug report
+description: Laporkan bug yang ditemukan pada template.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Deskripsi bug
+      description: Jelaskan perilaku yang terjadi.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Langkah reproduksi
+      description: Tuliskan langkah demi langkah.
+      placeholder: |
+        1. ...
+        2. ...
+        3. ...
+    validations:
+      required: true
