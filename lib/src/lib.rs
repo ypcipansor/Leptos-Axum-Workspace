@@ -4,15 +4,15 @@ pub const APP_NAME: &str = "Simple Management Information System";
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct HealthStatus {
-    pub service: &'static str,
-    pub status: &'static str,
+    pub service: String,
+    pub status: String,
 }
 
 impl HealthStatus {
-    pub fn ok(service: &'static str) -> Self {
+    pub fn ok(service: impl Into<String>) -> Self {
         Self {
-            service,
-            status: "ok",
+            service: service.into(),
+            status: "ok".to_string(),
         }
     }
 }
