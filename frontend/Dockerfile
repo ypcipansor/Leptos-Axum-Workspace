@@ -22,6 +22,7 @@ RUN mkdir -p /usr/local/bin \
 COPY Cargo.toml Cargo.lock ./
 COPY lib/ ./lib/
 COPY frontend/ ./frontend/
+COPY backend/ ./backend/
 
 WORKDIR /app/frontend
 
