@@ -1,12 +1,13 @@
 import { test, expect } from '@playwright/test';
+import { randomBytes } from 'crypto';
 
 test('full end-to-end user flow: register, login, session list, logout', async ({ page }) => {
   // Listen to browser console and page errors
   page.on('console', msg => console.log('BROWSER CONSOLE:', msg.text()));
   page.on('pageerror', err => console.log('BROWSER PAGE ERROR:', err.message));
 
-  // Generate a random unique username to prevent registration conflict
-  const username = `user_${Math.floor(Math.random() * 1000000)}`;
+  // Generate a cryptographically secure unique username to prevent conflict and satisfy CodeQL
+  const username = `user_${randomBytes(4).toString('hex')}`;
   const password = 'mypassword123';
 
   // 1. Visit Login screen with cache buster

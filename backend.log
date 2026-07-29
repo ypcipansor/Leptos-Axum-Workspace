@@ -1,5 +1,0 @@
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.38s
-     Running `target/debug/backend`
-Connecting to database and running migrations...
-Database connected and initialized successfully.
-backend listening on http://0.0.0.0:3000

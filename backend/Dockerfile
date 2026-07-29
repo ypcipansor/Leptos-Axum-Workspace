@@ -13,6 +13,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY Cargo.toml Cargo.lock ./
 COPY lib/ ./lib/
 COPY backend/ ./backend/
+COPY frontend/ ./frontend/
 
 # Build backend binary
 WORKDIR /app/backend
