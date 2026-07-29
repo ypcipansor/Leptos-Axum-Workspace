@@ -31,8 +31,8 @@ mod tests {
         assert_eq!(
             HealthStatus::ok("backend"),
             HealthStatus {
-                service: "backend",
-                status: "ok"
+                service: "backend".to_string(),
+                status: "ok".to_string(),
             }
         );
     }
