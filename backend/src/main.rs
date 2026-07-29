@@ -5,15 +5,22 @@ use tokio::net::TcpListener;
 #[tokio::main]
 async fn main() {
     let database_url = env::var("DATABASE_URL")
-        .unwrap_or_else(|_| "postgresql://postgres:postgres@localhost:5432/postgres".to_string());
+        .ok()
+        .filter(|s| !s.is_empty())
+        .unwrap_or_else(|| "postgresql://postgres:postgres@localhost:5432/postgres".to_string());
 
     println!("Connecting to database and running migrations...");
     let pool = init_db(&database_url).await;
     println!("Database connected and initialized successfully.");
 
-    let listener = TcpListener::bind("0.0.0.0:3000")
+    let port = env::var("PORT")
+        .ok()
+        .and_then(|s| s.parse::<u16>().ok())
+        .unwrap_or(3000);
+
+    let listener = TcpListener::bind(format!("0.0.0.0:{}", port))
         .await
-        .expect("failed to bind backend server to 0.0.0.0:3000");
+        .unwrap_or_else(|_| panic!("failed to bind backend server to 0.0.0.0:{}", port));
 
     println!(
         "backend listening on http://{}",

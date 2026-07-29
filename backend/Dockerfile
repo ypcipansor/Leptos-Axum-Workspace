@@ -37,6 +37,5 @@ COPY --from=builder /app/target/release/backend /app/backend
 EXPOSE 3000
 
 ENV PORT=3000
-ENV DATABASE_URL=""
 
 CMD ["/app/backend"]
