@@ -9,7 +9,7 @@ permissions:
   contents: read
 
 jobs:
-  rust:
+  native:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -19,11 +19,61 @@ jobs:
         uses: dtolnay/rust-toolchain@1.97.1
         with:
           components: rustfmt, clippy
+
       - name: Cargo fmt
         run: cargo fmt --all -- --check
 
       - name: Cargo clippy
-        run: cargo clippy --workspace --all-targets -- -D warnings
+        run: cargo clippy --workspace --exclude frontend --all-targets -- -D warnings
 
       - name: Cargo test
-        run: cargo test --workspace --all-targets
+        run: cargo test --workspace --exclude frontend --all-targets
+
+  frontend-wasm:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Rust with wasm target
+        uses: dtolnay/rust-toolchain@1.97.1
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Install Trunk
+        run: cargo install --locked trunk
+
+      - name: Trunk build
+        working-directory: frontend
+        run: trunk build
+
+  frontend-e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Rust with wasm target
+        uses: dtolnay/rust-toolchain@1.97.1
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Install Trunk
+        run: cargo install --locked trunk
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install frontend e2e dependencies
+        working-directory: frontend/tests/e2e
+        run: npm ci
+
+      - name: Install Playwright browsers
+        working-directory: frontend/tests/e2e
+        run: npx playwright install --with-deps
+
+      - name: Run frontend e2e
+        working-directory: frontend/tests/e2e
+        run: npm run e2e

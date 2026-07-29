@@ -9,3 +9,7 @@ license.workspace = true
 axum.workspace = true
 shared-lib = { path = "../lib" }
 tokio.workspace = true
+
+[dev-dependencies]
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+tokio = { workspace = true, features = ["macros", "rt-multi-thread", "net"] }

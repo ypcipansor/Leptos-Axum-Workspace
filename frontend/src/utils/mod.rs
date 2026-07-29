@@ -1,0 +1,1 @@
+//! Helper non-domain frontend.

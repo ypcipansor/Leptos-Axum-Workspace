@@ -23,7 +23,7 @@ mod tests {
 
     #[test]
     fn app_name_is_set() {
-        assert!(!APP_NAME.is_empty());
+        assert_eq!(APP_NAME, "Simple Management Information System");
     }
 
     #[test]
