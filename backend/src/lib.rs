@@ -122,8 +122,15 @@ pub async fn init_db(database_url: &str) -> PgPool {
 pub fn app(pool: PgPool) -> Router {
     let state = AppState { pool };
 
+    let allowed_origin =
+        std::env::var("FRONTEND_ORIGIN").unwrap_or_else(|_| "http://localhost:1420".to_string());
+
     let cors = CorsLayer::new()
-        .allow_origin(Any)
+        .allow_origin(
+            allowed_origin
+                .parse::<axum::http::HeaderValue>()
+                .expect("Invalid FRONTEND_ORIGIN"),
+        )
         .allow_headers(Any)
         .allow_methods(Any);
 
@@ -289,7 +296,9 @@ async fn login(
     let ip_address = headers
         .get("X-Forwarded-For")
         .and_then(|h| h.to_str().ok())
-        .map(|s| s.to_string())
+        .and_then(|s| s.split(',').next())
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty() && s.len() <= 45)
         .or_else(|| Some("127.0.0.1".to_string()));
 
     let session_result = sqlx::query(
