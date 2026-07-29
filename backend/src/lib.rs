@@ -80,7 +80,7 @@ where
             }
             None => Err((
                 StatusCode::UNAUTHORIZED,
-                Json(serde_json::json!({ "error": "Session is expired or invalid" })),
+                Json(serde_json::json!({ "error": "Session is invalid or has been revoked" })),
             )),
         }
     }
@@ -220,13 +220,25 @@ async fn register(
                 message: "User registered successfully.".to_string(),
             }),
         ),
-        Err(e) => (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(RegisterResponse {
-                success: false,
-                message: format!("Failed to save user: {}", e),
-            }),
-        ),
+        Err(e) => {
+            if matches!(&e, sqlx::Error::Database(db_err) if db_err.code().as_deref() == Some("23505"))
+            {
+                return (
+                    StatusCode::CONFLICT,
+                    Json(RegisterResponse {
+                        success: false,
+                        message: "Username already exists.".to_string(),
+                    }),
+                );
+            }
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(RegisterResponse {
+                    success: false,
+                    message: format!("Failed to save user: {}", e),
+                }),
+            )
+        }
     }
 }
 

@@ -7,8 +7,9 @@ use std::env;
 use tokio::net::TcpListener;
 
 async fn setup_test_app() -> (String, tokio::task::JoinHandle<()>, sqlx::PgPool) {
-    let database_url = env::var("DATABASE_URL")
-        .unwrap_or_else(|_| "postgresql://postgres:postgres@localhost:5432/postgres".to_string());
+    let database_url = env::var("TEST_DATABASE_URL").unwrap_or_else(|_| {
+        "postgresql://postgres:postgres@localhost:5432/postgres_test".to_string()
+    });
 
     let pool = init_db(&database_url).await;
 

@@ -21,8 +21,6 @@ pub fn LoginPage(
         let u = username_input.get();
         let p = password_input.get();
 
-        println!("LOGIN ACTION triggered: username='{}', password='{}'", u, p);
-
         if u.is_empty() || p.is_empty() {
             set_error_msg.set(Some("Username and password cannot be empty.".to_string()));
             return;
@@ -45,20 +43,24 @@ pub fn LoginPage(
                 .await
             {
                 Ok(resp) => {
-                    println!("LOGIN ACTION response status={}", resp.status());
                     if resp.ok() {
                         if let Ok(body) = resp.json::<LoginResponse>().await {
                             if body.success {
-                                let token = body.token.expect("missing token in response");
-                                let uname = body.username.expect("missing username in response");
+                                if let (Some(token), Some(uname)) = (body.token, body.username) {
+                                    set_local_storage_item("token", &token);
+                                    set_local_storage_item("username", &uname);
 
-                                set_local_storage_item("token", &token);
-                                set_local_storage_item("username", &uname);
-
-                                set_token.set(Some(token));
-                                set_username.set(Some(uname));
-                                set_success_msg.set(Some("Logged in successfully!".to_string()));
-                                set_route.set(AppRoute::Dashboard);
+                                    set_token.set(Some(token));
+                                    set_username.set(Some(uname));
+                                    set_success_msg
+                                        .set(Some("Logged in successfully!".to_string()));
+                                    set_route.set(AppRoute::Dashboard);
+                                } else {
+                                    set_error_msg.set(Some(
+                                        "Server returned success but missing token or username."
+                                            .to_string(),
+                                    ));
+                                }
                             } else {
                                 set_error_msg.set(Some(body.message));
                             }
@@ -184,11 +186,6 @@ pub fn RegisterPage(set_route: WriteSignal<AppRoute>) -> impl IntoView {
         let u = username_input.get();
         let p = password_input.get();
 
-        println!(
-            "REGISTER ACTION triggered: username='{}', password='{}'",
-            u, p
-        );
-
         if u.is_empty() || p.len() < 4 {
             set_error_msg.set(Some(
                 "Username cannot be empty and password must be at least 4 characters.".to_string(),
@@ -213,7 +210,6 @@ pub fn RegisterPage(set_route: WriteSignal<AppRoute>) -> impl IntoView {
                 .await
             {
                 Ok(resp) => {
-                    println!("REGISTER ACTION response status={}", resp.status());
                     if resp.ok() {
                         set_success_msg.set(Some(
                             "Registration successful! You can now log in.".to_string(),
