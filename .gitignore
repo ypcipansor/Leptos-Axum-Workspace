@@ -1,11 +1,18 @@
 # Rust
-/target/
+target/
+**/target/
 **/*.rs.bk
 *.pdb
 
 # Leptos/trunk outputs
-/site/
-/dist/
+site/
+**/dist/
+dist/
+
+# Dependencies
+node_modules/
+**/node_modules/
+.sass-cache/
 
 # Environment
 .env
@@ -15,3 +22,7 @@
 # Editors
 .idea/
 .vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln

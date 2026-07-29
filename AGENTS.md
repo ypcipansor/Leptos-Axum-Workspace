@@ -10,3 +10,4 @@ Panduan umum kontribusi untuk workspace `frontend`, `backend`, dan `lib`.
 - Prasyarat frontend E2E: Node.js dan Playwright (test di `frontend/tests/e2e`).
 - Jalankan `cargo fmt --all`, `cargo test --workspace --exclude frontend`, `trunk build` (di `frontend/`), dan Playwright E2E frontend sebelum merge.
 - Buat perubahan kecil, terfokus, dan terdokumentasi.
+- **Aturan Screenshot Frontend**: Setiap kali ada perubahan pada bagian frontend (UI/UX), wajib menampilkan tangkap layar (screenshot) sebelum ("before") dan sesudah ("after") perubahan tersebut di dokumentasi atau saat pull request.
