@@ -1,0 +1,15 @@
+[package]
+name = "backend"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+axum.workspace = true
+shared-lib = { path = "../lib" }
+tokio.workspace = true
+
+[dev-dependencies]
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+tokio = { workspace = true, features = ["macros", "rt-multi-thread", "net"] }
