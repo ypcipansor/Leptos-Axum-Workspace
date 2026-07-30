@@ -6,7 +6,6 @@ use axum::{
     routing::{get, post},
 };
 use bcrypt::{DEFAULT_COST, hash, verify};
-use serde::Deserialize;
 use shared_lib::{
     HealthStatus, LoginRequest, LoginResponse, RegisterRequest, RegisterResponse, SessionInfo,
 };
@@ -383,15 +382,10 @@ async fn list_sessions(
     }
 }
 
-#[derive(Deserialize)]
-struct RevokePayload {
-    token: String,
-}
-
 async fn revoke_session(
     State(state): State<AppState>,
     auth_user: AuthenticatedUser,
-    Json(payload): Json<RevokePayload>,
+    Json(payload): Json<shared_lib::RevokeRequest>,
 ) -> impl IntoResponse {
     let delete_result = sqlx::query("DELETE FROM sessions WHERE token = $1 AND username = $2")
         .bind(&payload.token)

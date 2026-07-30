@@ -64,11 +64,22 @@ pub fn DashboardPage(
     });
 
     let handle_logout = move |_| {
+        let maybe_t = token.get();
         remove_local_storage_item("token");
         remove_local_storage_item("username");
         set_token.set(None);
         set_username.set(None);
         set_route.set(AppRoute::Login);
+        if let Some(t) = maybe_t {
+            spawn_local(async move {
+                let _ = Request::post("/api/sessions/revoke")
+                    .header("Authorization", &format!("Bearer {}", t))
+                    .json(&shared_lib::RevokeRequest { token: t.clone() })
+                    .expect("Failed to serialize revoke request")
+                    .send()
+                    .await;
+            });
+        }
     };
 
     let handle_revoke = move |target_token: String| {
@@ -78,15 +89,10 @@ pub fn DashboardPage(
         set_error_msg.set(None);
         set_success_msg.set(None);
 
-        #[derive(serde::Serialize)]
-        struct RevokePayload {
-            token: String,
-        }
-
         spawn_local(async move {
             match Request::post("/api/sessions/revoke")
                 .header("Authorization", &format!("Bearer {}", t))
-                .json(&RevokePayload {
+                .json(&shared_lib::RevokeRequest {
                     token: target_token.clone(),
                 })
                 .expect("Failed to serialize revoke request")

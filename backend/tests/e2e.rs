@@ -179,14 +179,10 @@ async fn test_full_auth_and_sessions_flow() {
     assert_eq!(other_session.user_agent, Some("Test-Mobile".to_string()));
 
     // 9. Revoke Session (Revoke Token 2 using Token 1 session credentials)
-    #[derive(serde::Serialize)]
-    struct RevokePayload {
-        token: String,
-    }
     let revoke_resp = client
         .post(format!("{}/api/sessions/revoke", base_url))
         .header("Authorization", format!("Bearer {}", token1))
-        .json(&RevokePayload {
+        .json(&shared_lib::RevokeRequest {
             token: token2.clone(),
         })
         .send()

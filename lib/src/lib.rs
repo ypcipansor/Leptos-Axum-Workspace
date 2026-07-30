@@ -59,6 +59,11 @@ pub struct RevokeResponse {
     pub message: String,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct RevokeRequest {
+    pub token: String,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

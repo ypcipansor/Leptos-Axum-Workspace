@@ -9,6 +9,15 @@ site/
 **/dist/
 dist/
 
+# Tailwind generated CSS
+style.css
+**/style.css
+frontend/style.css
+
+# Playwright outputs
+test-results/
+**/test-results/
+
 # Dependencies
 node_modules/
 **/node_modules/

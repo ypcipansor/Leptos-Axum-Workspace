@@ -120,6 +120,9 @@ jobs:
         working-directory: frontend/tests/e2e
         run: npx playwright install-deps
 
+      - name: Build Backend
+        run: cargo build -p backend
+
       - name: Start Backend in Background
         run: |
           cargo run -p backend &
