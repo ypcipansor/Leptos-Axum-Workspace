@@ -1,5 +1,5 @@
 # Stage 1: Build the static assets using Trunk
-FROM rust:1.97-slim AS builder
+FROM rust:1.100-slim AS builder
 
 WORKDIR /app
 
