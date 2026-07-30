@@ -4,7 +4,7 @@ Template aplikasi web **Sistem Informasi Manajemen sederhana** berbasis Rust wor
 
 ## Stack
 
-- **Rust** 1.97.1 (Edition 2024)
+- **Rust** 1.100.0 (Edition 2024)
 - **Frontend**: Leptos 0.8.19 (CSR + Trunk)
 - **Backend**: Axum 0.8.9
 - **Shared library**: crate bersama untuk model/konstanta lintas frontend-backend
