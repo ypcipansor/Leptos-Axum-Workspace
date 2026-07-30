@@ -1,2 +1,16 @@
 [build]
 target = "index.html"
+
+[[proxy]]
+backend = "http://127.0.0.1:3000/api"
+
+[serve]
+no_autoreload = true
+
+[watch]
+ignore = ["style.css"]
+
+[[hooks]]
+stage = "pre_build"
+command = "npx"
+command_arguments = ["tailwindcss@3.4.15", "-c", "tailwind.config.js", "-i", "input.css", "-o", "style.css"]

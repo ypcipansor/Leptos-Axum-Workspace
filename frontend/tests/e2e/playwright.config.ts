@@ -9,6 +9,7 @@ export default defineConfig({
     command: 'trunk serve --address 127.0.0.1 --port 1420',
     cwd: '../..',
     port: 1420,
-    reuseExistingServer: !process.env.CI
+    reuseExistingServer: !process.env.CI,
+    timeout: 180000 // 3 minutes timeout for compilation inside slow CI environments
   }
 });
