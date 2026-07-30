@@ -42,25 +42,31 @@ pub(crate) async fn register(
             );
         }
         Err(e) => {
+            eprintln!("Database error during registration check: {}", e);
             return (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(RegisterResponse {
                     success: false,
-                    message: format!("Database error: {}", e),
+                    message: "Internal server error.".to_string(),
                 }),
             );
         }
         _ => {}
     }
 
-    let password_hash = match hash(&password, DEFAULT_COST) {
-        Ok(h) => h,
-        Err(_) => {
+    // Move CPU-heavy hashing to spawn_blocking
+    let password_clone = password.clone();
+    let hashed = tokio::task::spawn_blocking(move || hash(&password_clone, DEFAULT_COST)).await;
+
+    let password_hash = match hashed {
+        Ok(Ok(h)) => h,
+        _ => {
+            eprintln!("Failed to hash password during registration");
             return (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(RegisterResponse {
                     success: false,
-                    message: "Failed to hash password.".to_string(),
+                    message: "Internal server error.".to_string(),
                 }),
             );
         }
@@ -87,11 +93,12 @@ pub(crate) async fn register(
                     }),
                 );
             }
+            eprintln!("Database error during registration insert: {}", e);
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(RegisterResponse {
                     success: false,
-                    message: format!("Failed to save user: {}", e),
+                    message: "Internal server error.".to_string(),
                 }),
             )
         }
@@ -123,6 +130,7 @@ pub(crate) async fn login(
             );
         }
         Err(e) => {
+            eprintln!("Database error during login user lookup: {}", e);
             return (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(LoginResponse {
@@ -130,13 +138,22 @@ pub(crate) async fn login(
                     token: None,
                     session_id: None,
                     username: None,
-                    message: format!("Database error: {}", e),
+                    message: "Internal server error.".to_string(),
                 }),
             );
         }
     };
 
-    let is_valid = verify(&password, &password_hash).unwrap_or_default();
+    // Move CPU-heavy password verification to spawn_blocking
+    let password_clone = password.clone();
+    let password_hash_clone = password_hash.clone();
+    let verified =
+        tokio::task::spawn_blocking(move || verify(&password_clone, &password_hash_clone)).await;
+
+    let is_valid = match verified {
+        Ok(Ok(valid)) => valid,
+        _ => false,
+    };
 
     if !is_valid {
         return (
@@ -188,15 +205,18 @@ pub(crate) async fn login(
                 message: "Logged in successfully.".to_string(),
             }),
         ),
-        Err(e) => (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(LoginResponse {
-                success: false,
-                token: None,
-                session_id: None,
-                username: None,
-                message: format!("Failed to create session: {}", e),
-            }),
-        ),
+        Err(e) => {
+            eprintln!("Database error during login session creation: {}", e);
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(LoginResponse {
+                    success: false,
+                    token: None,
+                    session_id: None,
+                    username: None,
+                    message: "Internal server error.".to_string(),
+                }),
+            )
+        }
     }
 }

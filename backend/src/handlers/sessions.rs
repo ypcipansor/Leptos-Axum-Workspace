@@ -33,7 +33,10 @@ pub(crate) async fn list_sessions(
 
             (StatusCode::OK, Json(list))
         }
-        Err(_) => (StatusCode::INTERNAL_SERVER_ERROR, Json(vec![])),
+        Err(e) => {
+            eprintln!("Database error during session listing: {}", e);
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(vec![]))
+        }
     }
 }
 
@@ -64,12 +67,15 @@ pub(crate) async fn revoke_session(
                 )
             }
         }
-        Err(e) => (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(RevokeResponse {
-                success: false,
-                message: format!("Database error: {}", e),
-            }),
-        ),
+        Err(e) => {
+            eprintln!("Database error during session revocation: {}", e);
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(RevokeResponse {
+                    success: false,
+                    message: "Internal server error.".to_string(),
+                }),
+            )
+        }
     }
 }

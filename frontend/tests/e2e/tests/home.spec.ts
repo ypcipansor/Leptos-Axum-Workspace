@@ -14,15 +14,15 @@ test('full end-to-end user flow: register, login, session list, logout', async (
   await page.goto('/?t=' + Date.now());
   await expect(page.locator('h2')).toHaveText('Sign In to SIM');
 
-  // Take screenshot of Login page
-  await page.screenshot({ path: '../../screenshot_login.png' });
+  // Take screenshot of Login page inside ignored directory
+  await page.screenshot({ path: 'test-results/screenshot_login.png' });
 
   // 2. Click register link
   await page.locator('#go-to-register').click();
   await expect(page.locator('h2')).toHaveText('Create Account');
 
-  // Take screenshot of Register page
-  await page.screenshot({ path: '../../screenshot_register.png' });
+  // Take screenshot of Register page inside ignored directory
+  await page.screenshot({ path: 'test-results/screenshot_register.png' });
 
   // 3. Perform registration
   await page.locator('#reg-username').fill(username);
@@ -50,8 +50,8 @@ test('full end-to-end user flow: register, login, session list, logout', async (
   await expect(page.locator('table')).toBeVisible();
   await expect(page.locator('td').first()).toBeVisible();
 
-  // Take screenshot of Dashboard page
-  await page.screenshot({ path: '../../screenshot_dashboard.png' });
+  // Take screenshot of Dashboard page inside ignored directory
+  await page.screenshot({ path: 'test-results/screenshot_dashboard.png' });
 
   // 7. Test Logout
   await page.locator('#logout-btn').click();
