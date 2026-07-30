@@ -46,8 +46,11 @@ pub fn LoginPage(
                     if resp.ok() {
                         if let Ok(body) = resp.json::<LoginResponse>().await {
                             if body.success {
-                                if let (Some(token), Some(uname)) = (body.token, body.username) {
+                                if let (Some(token), Some(session_id), Some(uname)) =
+                                    (body.token, body.session_id, body.username)
+                                {
                                     set_local_storage_item("token", &token);
+                                    set_local_storage_item("session_id", &session_id);
                                     set_local_storage_item("username", &uname);
 
                                     set_token.set(Some(token));

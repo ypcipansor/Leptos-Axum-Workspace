@@ -39,13 +39,14 @@ pub struct LoginRequest {
 pub struct LoginResponse {
     pub success: bool,
     pub token: Option<String>,
+    pub session_id: Option<String>,
     pub username: Option<String>,
     pub message: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct SessionInfo {
-    pub token: String,
+    pub id: String,
     pub username: String,
     pub user_agent: Option<String>,
     pub ip_address: Option<String>,
@@ -61,7 +62,7 @@ pub struct RevokeResponse {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct RevokeRequest {
-    pub token: String,
+    pub id: String,
 }
 
 #[cfg(test)]
@@ -122,6 +123,7 @@ mod tests {
         let resp = LoginResponse {
             success: true,
             token: Some("tok".to_string()),
+            session_id: Some("sid".to_string()),
             username: Some("alice".to_string()),
             message: "ok".to_string(),
         };
@@ -135,6 +137,7 @@ mod tests {
         let resp = LoginResponse {
             success: false,
             token: None,
+            session_id: None,
             username: None,
             message: "invalid".to_string(),
         };
@@ -146,7 +149,7 @@ mod tests {
     #[test]
     fn session_info_roundtrips() {
         let s = SessionInfo {
-            token: "tok".to_string(),
+            id: "sid".to_string(),
             username: "alice".to_string(),
             user_agent: Some("ua".to_string()),
             ip_address: None,
@@ -161,7 +164,7 @@ mod tests {
     #[test]
     fn revoke_request_roundtrips() {
         let req = RevokeRequest {
-            token: "tok".to_string(),
+            id: "sid".to_string(),
         };
         let json = serde_json::to_string(&req).unwrap();
         let back: RevokeRequest = serde_json::from_str(&json).unwrap();

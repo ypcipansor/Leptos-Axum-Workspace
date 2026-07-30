@@ -168,22 +168,20 @@ async fn test_full_auth_and_sessions_flow() {
         .iter()
         .find(|s| s.is_current)
         .expect("should find current session");
-    assert_eq!(current_session.token, token1);
     assert_eq!(current_session.user_agent, Some("Test-Browser".to_string()));
 
     let other_session = sessions
         .iter()
         .find(|s| !s.is_current)
         .expect("should find other session");
-    assert_eq!(other_session.token, token2);
     assert_eq!(other_session.user_agent, Some("Test-Mobile".to_string()));
 
-    // 9. Revoke Session (Revoke Token 2 using Token 1 session credentials)
+    // 9. Revoke Session (Revoke other session using Token 1 credentials)
     let revoke_resp = client
         .post(format!("{}/api/sessions/revoke", base_url))
         .header("Authorization", format!("Bearer {}", token1))
         .json(&shared_lib::RevokeRequest {
-            token: token2.clone(),
+            id: other_session.id.clone(),
         })
         .send()
         .await
@@ -207,7 +205,7 @@ async fn test_full_auth_and_sessions_flow() {
         .await
         .expect("failed parsing list sessions after revoke");
     assert_eq!(sessions_after.len(), 1);
-    assert_eq!(sessions_after[0].token, token1);
+    assert_eq!(sessions_after[0].id, current_session.id);
 
     // 11. Trying to query sessions with the revoked Token 2 should return 401 Unauthorized
     let invalid_auth_resp = client

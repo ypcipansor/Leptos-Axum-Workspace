@@ -29,6 +29,7 @@ impl FromRef<AppState> for PgPool {
 pub struct AuthenticatedUser {
     pub username: String,
     pub token: String,
+    pub session_id: String,
 }
 
 impl<S> axum::extract::FromRequestParts<S> for AuthenticatedUser
@@ -61,7 +62,7 @@ where
             }
         };
 
-        let session = sqlx::query("SELECT username FROM sessions WHERE token = $1")
+        let session = sqlx::query("SELECT username, session_id FROM sessions WHERE token = $1")
             .bind(&token)
             .fetch_optional(&pool)
             .await
@@ -75,7 +76,12 @@ where
         match session {
             Some(row) => {
                 let username: String = row.get("username");
-                Ok(AuthenticatedUser { username, token })
+                let session_id: String = row.get("session_id");
+                Ok(AuthenticatedUser {
+                    username,
+                    token,
+                    session_id,
+                })
             }
             None => Err((
                 StatusCode::UNAUTHORIZED,
@@ -105,6 +111,7 @@ pub async fn init_db(database_url: &str) -> PgPool {
     sqlx::query(
         "CREATE TABLE IF NOT EXISTS sessions (
             token VARCHAR(255) PRIMARY KEY,
+            session_id VARCHAR(255) UNIQUE NOT NULL,
             username VARCHAR(100) NOT NULL REFERENCES users(username) ON DELETE CASCADE,
             user_agent TEXT,
             ip_address VARCHAR(45),
@@ -262,6 +269,7 @@ async fn login(
                 Json(LoginResponse {
                     success: false,
                     token: None,
+                    session_id: None,
                     username: None,
                     message: "Invalid username or password.".to_string(),
                 }),
@@ -273,6 +281,7 @@ async fn login(
                 Json(LoginResponse {
                     success: false,
                     token: None,
+                    session_id: None,
                     username: None,
                     message: format!("Database error: {}", e),
                 }),
@@ -291,6 +300,7 @@ async fn login(
             Json(LoginResponse {
                 success: false,
                 token: None,
+                session_id: None,
                 username: None,
                 message: "Invalid username or password.".to_string(),
             }),
@@ -298,6 +308,7 @@ async fn login(
     }
 
     let token = Uuid::new_v4().to_string();
+    let session_id = Uuid::new_v4().to_string();
 
     let user_agent = headers
         .get("User-Agent")
@@ -313,9 +324,10 @@ async fn login(
         .or_else(|| Some("127.0.0.1".to_string()));
 
     let session_result = sqlx::query(
-        "INSERT INTO sessions (token, username, user_agent, ip_address) VALUES ($1, $2, $3, $4)",
+        "INSERT INTO sessions (token, session_id, username, user_agent, ip_address) VALUES ($1, $2, $3, $4, $5)",
     )
     .bind(&token)
+    .bind(&session_id)
     .bind(&user_username)
     .bind(user_agent)
     .bind(ip_address)
@@ -328,6 +340,7 @@ async fn login(
             Json(LoginResponse {
                 success: true,
                 token: Some(token),
+                session_id: Some(session_id),
                 username: Some(user_username),
                 message: "Logged in successfully.".to_string(),
             }),
@@ -337,6 +350,7 @@ async fn login(
             Json(LoginResponse {
                 success: false,
                 token: None,
+                session_id: None,
                 username: None,
                 message: format!("Failed to create session: {}", e),
             }),
@@ -349,7 +363,7 @@ async fn list_sessions(
     auth_user: AuthenticatedUser,
 ) -> impl IntoResponse {
     let sessions_rows = sqlx::query(
-        "SELECT token, username, user_agent, ip_address, created_at FROM sessions WHERE username = $1 ORDER BY created_at DESC",
+        "SELECT session_id, username, user_agent, ip_address, created_at FROM sessions WHERE username = $1 ORDER BY created_at DESC",
     )
     .bind(&auth_user.username)
     .fetch_all(&state.pool)
@@ -360,14 +374,14 @@ async fn list_sessions(
             let list: Vec<SessionInfo> = rows
                 .into_iter()
                 .map(|r| {
-                    let token: String = r.get("token");
+                    let session_id: String = r.get("session_id");
                     let username: String = r.get("username");
                     let user_agent: Option<String> = r.get("user_agent");
                     let ip_address: Option<String> = r.get("ip_address");
                     let created_at: chrono::DateTime<chrono::Utc> = r.get("created_at");
                     SessionInfo {
-                        is_current: token == auth_user.token,
-                        token,
+                        is_current: session_id == auth_user.session_id,
+                        id: session_id,
                         username,
                         user_agent,
                         ip_address,
@@ -387,8 +401,8 @@ async fn revoke_session(
     auth_user: AuthenticatedUser,
     Json(payload): Json<shared_lib::RevokeRequest>,
 ) -> impl IntoResponse {
-    let delete_result = sqlx::query("DELETE FROM sessions WHERE token = $1 AND username = $2")
-        .bind(&payload.token)
+    let delete_result = sqlx::query("DELETE FROM sessions WHERE session_id = $1 AND username = $2")
+        .bind(&payload.id)
         .bind(&auth_user.username)
         .execute(&state.pool)
         .await;

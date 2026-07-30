@@ -1,5 +1,5 @@
 use crate::routes::AppRoute;
-use crate::utils::remove_local_storage_item;
+use crate::utils::{get_local_storage_item, remove_local_storage_item};
 use gloo_net::http::Request;
 use leptos::prelude::*;
 use shared_lib::SessionInfo;
@@ -64,17 +64,19 @@ pub fn DashboardPage(
     });
 
     let handle_logout = move |_| {
+        let maybe_sid = get_local_storage_item("session_id");
         let maybe_t = token.get();
         remove_local_storage_item("token");
+        remove_local_storage_item("session_id");
         remove_local_storage_item("username");
         set_token.set(None);
         set_username.set(None);
         set_route.set(AppRoute::Login);
-        if let Some(t) = maybe_t {
+        if let (Some(t), Some(sid)) = (maybe_t, maybe_sid) {
             spawn_local(async move {
                 let _ = Request::post("/api/sessions/revoke")
                     .header("Authorization", &format!("Bearer {}", t))
-                    .json(&shared_lib::RevokeRequest { token: t.clone() })
+                    .json(&shared_lib::RevokeRequest { id: sid })
                     .expect("Failed to serialize revoke request")
                     .send()
                     .await;
@@ -82,7 +84,7 @@ pub fn DashboardPage(
         }
     };
 
-    let handle_revoke = move |target_token: String| {
+    let handle_revoke = move |target_sid: String| {
         let Some(t) = token.get() else {
             return;
         };
@@ -93,7 +95,7 @@ pub fn DashboardPage(
             match Request::post("/api/sessions/revoke")
                 .header("Authorization", &format!("Bearer {}", t))
                 .json(&shared_lib::RevokeRequest {
-                    token: target_token.clone(),
+                    id: target_sid.clone(),
                 })
                 .expect("Failed to serialize revoke request")
                 .send()
@@ -103,8 +105,10 @@ pub fn DashboardPage(
                     if resp.ok() {
                         set_success_msg.set(Some("Session revoked successfully!".to_string()));
 
-                        if target_token == t {
+                        let current_sid = get_local_storage_item("session_id");
+                        if Some(target_sid) == current_sid {
                             remove_local_storage_item("token");
+                            remove_local_storage_item("session_id");
                             remove_local_storage_item("username");
                             set_token.set(None);
                             set_username.set(None);
@@ -201,11 +205,11 @@ pub fn DashboardPage(
                                         }.into_any()
                                     } else {
                                         list.into_iter().map(|session| {
-                                            let s_token = session.token.clone();
-                                            let s_token_disp = if s_token.len() > 10 {
-                                                format!("{}...", &s_token[..10])
+                                            let s_sid = session.id.clone();
+                                            let s_sid_disp = if s_sid.len() > 10 {
+                                                format!("{}...", &s_sid[..10])
                                             } else {
-                                                s_token.clone()
+                                                s_sid.clone()
                                             };
                                             let s_ip = session.ip_address.clone().unwrap_or_else(|| "Unknown".to_string());
                                             let s_ua = session.user_agent.clone().unwrap_or_else(|| "Unknown".to_string());
@@ -216,7 +220,7 @@ pub fn DashboardPage(
                                             view! {
                                                 <tr class=move || if is_current { "bg-indigo-50/20" } else { "" }>
                                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900">
-                                                        {s_token_disp.clone()}
+                                                        {s_sid_disp.clone()}
                                                     </td>
                                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                                         {s_ip.clone()}
@@ -236,8 +240,8 @@ pub fn DashboardPage(
                                                     </td>
                                                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                                         <button
-                                                            id=format!("revoke-{}", s_token)
-                                                            on:click=move |_| handle_revoke(s_token.clone())
+                                                            id=format!("revoke-{}", s_sid)
+                                                            on:click=move |_| handle_revoke(s_sid.clone())
                                                             class=move || if is_current {
                                                                 "text-red-600 hover:text-red-900 font-semibold transition bg-red-50 hover:bg-red-100 px-3 py-1 rounded-md"
                                                             } else {
