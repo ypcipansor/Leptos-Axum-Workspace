@@ -4,7 +4,7 @@
 Panduan umum kontribusi untuk workspace `frontend`, `backend`, dan `lib`.
 
 ## Rules
-- Gunakan Rust 1.97.1 dan Edition 2024.
+- Gunakan Rust 1.100.0 dan Edition 2024.
 - Jaga kontrak data bersama di `lib` agar frontend dan backend konsisten.
 - Frontend Leptos menggunakan mode CSR via Trunk (`trunk build` / `trunk serve`) dengan target `wasm32-unknown-unknown`.
 - Prasyarat frontend E2E: Node.js dan Playwright (test di `frontend/tests/e2e`).
