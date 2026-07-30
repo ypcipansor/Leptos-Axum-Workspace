@@ -33,7 +33,10 @@ pub fn App() -> impl IntoView {
                             set_token.set(new_val.clone());
                             if new_val.is_none() {
                                 set_route.set(AppRoute::Login);
+                                set_username.set(None);
                             } else {
+                                let current_uname = get_local_storage_item("username");
+                                set_username.set(current_uname);
                                 set_route.set(AppRoute::Dashboard);
                             }
                         } else if key == "username" {
