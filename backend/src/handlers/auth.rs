@@ -18,13 +18,24 @@ pub(crate) async fn register(
     let username = payload.username.trim();
     let password = payload.password;
 
-    if username.is_empty() || password.len() < 4 {
+    // Validate username lengths
+    if username.is_empty() || username.len() > 100 {
         return (
             StatusCode::BAD_REQUEST,
             Json(RegisterResponse {
                 success: false,
-                message: "Username cannot be empty and password must be at least 4 characters."
-                    .to_string(),
+                message: "Username must be between 1 and 100 characters.".to_string(),
+            }),
+        );
+    }
+
+    // Validate password length for bcrypt safety (limit to 72 bytes)
+    if password.len() < 4 || password.len() > 72 {
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(RegisterResponse {
+                success: false,
+                message: "Password must be between 4 and 72 characters.".to_string(),
             }),
         );
     }
@@ -118,6 +129,11 @@ pub(crate) async fn login(
     let (user_username, password_hash) = match user_row {
         Ok(Some((u, p))) => (u, p),
         Ok(None) => {
+            // Mitigate timing attack by executing dummy bcrypt verify
+            let dummy_hash =
+                "$2b$12$6uX7/IAt32VzE/tq1.D68OhZpfe6t.v6TjGg1r9FWeM20xV9y7G1e".to_string();
+            let password_clone = password.clone();
+            let _ = tokio::task::spawn_blocking(move || verify(&password_clone, &dummy_hash)).await;
             return (
                 StatusCode::UNAUTHORIZED,
                 Json(LoginResponse {

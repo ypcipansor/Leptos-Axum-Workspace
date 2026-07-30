@@ -18,11 +18,30 @@ pub fn LoginPage(
     let (loading, set_loading) = signal(false);
 
     let handle_submit = move || {
+        // Prevent double submit / re-entry when loading
+        if loading.get() {
+            return;
+        }
+
         let u = username_input.get();
         let p = password_input.get();
 
         if u.is_empty() || p.is_empty() {
             set_error_msg.set(Some("Username and password cannot be empty.".to_string()));
+            return;
+        }
+
+        if u.len() > 100 {
+            set_error_msg.set(Some(
+                "Username cannot be longer than 100 characters.".to_string(),
+            ));
+            return;
+        }
+
+        if p.len() > 72 {
+            set_error_msg.set(Some(
+                "Password cannot be longer than 72 characters.".to_string(),
+            ));
             return;
         }
 
@@ -125,6 +144,7 @@ pub fn LoginPage(
                                 id="username"
                                 type="text"
                                 required
+                                maxlength="100"
                                 class="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
                                 placeholder="Enter your username"
                                 prop:value=username_input
@@ -138,6 +158,7 @@ pub fn LoginPage(
                                 id="password"
                                 type="password"
                                 required
+                                maxlength="72"
                                 class="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
                                 placeholder="Enter your password"
                                 prop:value=password_input
@@ -186,12 +207,24 @@ pub fn RegisterPage(set_route: WriteSignal<AppRoute>) -> impl IntoView {
     let (loading, set_loading) = signal(false);
 
     let handle_submit = move || {
+        // Prevent double submit / re-entry when loading
+        if loading.get() {
+            return;
+        }
+
         let u = username_input.get();
         let p = password_input.get();
 
-        if u.is_empty() || p.len() < 4 {
+        if u.is_empty() || u.len() > 100 {
             set_error_msg.set(Some(
-                "Username cannot be empty and password must be at least 4 characters.".to_string(),
+                "Username must be between 1 and 100 characters.".to_string(),
+            ));
+            return;
+        }
+
+        if p.len() < 4 || p.len() > 72 {
+            set_error_msg.set(Some(
+                "Password must be between 4 and 72 characters.".to_string(),
             ));
             return;
         }
@@ -214,11 +247,19 @@ pub fn RegisterPage(set_route: WriteSignal<AppRoute>) -> impl IntoView {
             {
                 Ok(resp) => {
                     if resp.ok() {
-                        set_success_msg.set(Some(
-                            "Registration successful! You can now log in.".to_string(),
-                        ));
-                        set_username_input.set(String::new());
-                        set_password_input.set(String::new());
+                        if let Ok(body) = resp.json::<RegisterResponse>().await {
+                            if body.success {
+                                set_success_msg.set(Some(
+                                    "Registration successful! You can now log in.".to_string(),
+                                ));
+                                set_username_input.set(String::new());
+                                set_password_input.set(String::new());
+                            } else {
+                                set_error_msg.set(Some(body.message));
+                            }
+                        } else {
+                            set_error_msg.set(Some("Failed to parse server response.".to_string()));
+                        }
                     } else {
                         if let Ok(body) = resp.json::<RegisterResponse>().await {
                             set_error_msg.set(Some(body.message));
@@ -275,6 +316,7 @@ pub fn RegisterPage(set_route: WriteSignal<AppRoute>) -> impl IntoView {
                                 id="reg-username"
                                 type="text"
                                 required
+                                maxlength="100"
                                 class="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
                                 placeholder="Choose a username"
                                 prop:value=username_input
@@ -288,6 +330,7 @@ pub fn RegisterPage(set_route: WriteSignal<AppRoute>) -> impl IntoView {
                                 id="reg-password"
                                 type="password"
                                 required
+                                maxlength="72"
                                 class="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
                                 placeholder="Choose a password (min 4 chars)"
                                 prop:value=password_input

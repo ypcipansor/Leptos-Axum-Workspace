@@ -9,7 +9,7 @@ license.workspace = true
 axum.workspace = true
 shared-lib = { path = "../lib" }
 tokio.workspace = true
-sqlx = { version = "0.8", features = ["runtime-tokio", "postgres", "chrono", "uuid"] }
+sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "postgres", "chrono", "uuid"] }
 bcrypt = "0.15"
 uuid = { version = "1.11", features = ["v4"] }
 chrono = { version = "0.4", features = ["serde"] }

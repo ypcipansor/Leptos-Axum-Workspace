@@ -42,13 +42,36 @@ pub(crate) async fn lookup_by_token(
 pub(crate) async fn list_by_username(
     pool: &PgPool,
     username: &str,
-) -> Result<Vec<sqlx::postgres::PgRow>, sqlx::Error> {
-    sqlx::query(
+) -> Result<
+    Vec<(
+        String,
+        String,
+        Option<String>,
+        Option<String>,
+        chrono::DateTime<chrono::Utc>,
+    )>,
+    sqlx::Error,
+> {
+    let rows = sqlx::query(
         "SELECT session_id, username, user_agent, ip_address, created_at FROM sessions WHERE username = $1 ORDER BY created_at DESC",
     )
     .bind(username)
     .fetch_all(pool)
-    .await
+    .await?;
+
+    let list = rows
+        .into_iter()
+        .map(|r| {
+            let session_id: String = r.get("session_id");
+            let username: String = r.get("username");
+            let user_agent: Option<String> = r.get("user_agent");
+            let ip_address: Option<String> = r.get("ip_address");
+            let created_at: chrono::DateTime<chrono::Utc> = r.get("created_at");
+            (session_id, username, user_agent, ip_address, created_at)
+        })
+        .collect();
+
+    Ok(list)
 }
 
 pub(crate) async fn delete(

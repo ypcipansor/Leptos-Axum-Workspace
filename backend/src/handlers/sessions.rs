@@ -2,33 +2,28 @@ use crate::extractors::AuthenticatedUser;
 use crate::repository::sessions;
 use axum::{Json, extract::State, http::StatusCode, response::IntoResponse};
 use shared_lib::{RevokeRequest, RevokeResponse, SessionInfo};
-use sqlx::{PgPool, Row};
+use sqlx::PgPool;
 
 pub(crate) async fn list_sessions(
     State(pool): State<PgPool>,
     auth_user: AuthenticatedUser,
 ) -> impl IntoResponse {
-    let sessions_rows = sessions::list_by_username(&pool, &auth_user.username).await;
+    let sessions_result = sessions::list_by_username(&pool, &auth_user.username).await;
 
-    match sessions_rows {
+    match sessions_result {
         Ok(rows) => {
             let list: Vec<SessionInfo> = rows
                 .into_iter()
-                .map(|r| {
-                    let session_id: String = r.get("session_id");
-                    let username: String = r.get("username");
-                    let user_agent: Option<String> = r.get("user_agent");
-                    let ip_address: Option<String> = r.get("ip_address");
-                    let created_at: chrono::DateTime<chrono::Utc> = r.get("created_at");
-                    SessionInfo {
+                .map(
+                    |(session_id, username, user_agent, ip_address, created_at)| SessionInfo {
                         is_current: session_id == auth_user.session_id,
                         id: session_id,
                         username,
                         user_agent,
                         ip_address,
                         created_at: created_at.to_rfc3339(),
-                    }
-                })
+                    },
+                )
                 .collect();
 
             (StatusCode::OK, Json(list))

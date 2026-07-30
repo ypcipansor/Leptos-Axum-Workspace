@@ -24,7 +24,7 @@ FROM debian:bookworm-slim
 
 WORKDIR /app
 
-# Install runtime dependencies (OpenSSL is needed for reqwest / PostgreSQL)
+# Install runtime dependencies (CA certificates for secure HTTPS / SSL database connection support)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     openssl \
     ca-certificates \
