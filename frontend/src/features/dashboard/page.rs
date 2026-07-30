@@ -41,6 +41,7 @@ pub fn DashboardPage(
                         }
                     } else if resp.status() == 401 {
                         remove_local_storage_item("token");
+                        remove_local_storage_item("session_id");
                         remove_local_storage_item("username");
                         set_token.set(None);
                         set_username.set(None);
