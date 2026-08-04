@@ -80,7 +80,7 @@ argon2 = { version = "0.5.3", features = ["std"] }
 # Randomness comes straight from the OS CSPRNG rather than through argon2's
 # re-exported rand_core, whose `OsRng` is feature-gated off by default. One
 # explicit source serves both the password salt and the session token.
-getrandom = "0.3"
+getrandom = "0.4"
 sha2 = "0.11.0"
 
 # Serialization & data.
