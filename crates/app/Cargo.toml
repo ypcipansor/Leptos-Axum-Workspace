@@ -1,0 +1,56 @@
+[package]
+name = "app"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+description = "Leptos UI and server functions, compiled for both SSR and hydration"
+
+[lints]
+workspace = true
+
+[dependencies]
+app-core.workspace = true
+
+leptos.workspace = true
+leptos_meta.workspace = true
+leptos_router.workspace = true
+
+# `std` (not `clock`) supplies the formatting used to render timestamps.
+# `clock` would pull in system-time bindings this crate has no use for and that
+# need extra wiring on wasm.
+chrono = { workspace = true, features = ["serde", "std"] }
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+uuid = { workspace = true, features = ["serde"] }
+
+# Leptos already depends on web-sys, but only enables the bindings it needs
+# itself. `Storage` is required by the theme toggle; because cargo features are
+# additive, declaring it here turns it on for `leptos::web_sys` too.
+web-sys = { workspace = true, features = ["DomTokenList", "Storage"] }
+
+# SSR-only. These are what make `#[server]` bodies able to reach the database;
+# under `hydrate` none of them are compiled in, so no database or Axum code is
+# ever shipped to the browser.
+app-domain = { workspace = true, optional = true }
+axum = { workspace = true, optional = true }
+http = { workspace = true, optional = true }
+leptos_axum = { workspace = true, optional = true }
+tracing = { workspace = true, optional = true }
+
+[features]
+default = []
+hydrate = ["leptos/hydrate"]
+ssr = [
+  "leptos/ssr",
+  "leptos_meta/ssr",
+  "leptos_router/ssr",
+  "dep:app-domain",
+  "dep:axum",
+  "dep:http",
+  "dep:leptos_axum",
+  "dep:tracing",
+]

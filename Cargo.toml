@@ -1,15 +1,214 @@
 [workspace]
-resolver = "2"
-members = ["frontend", "backend", "lib"]
+resolver = "3"
+# Dependency order: core <- domain <- app <- {frontend, server}
+#
+# `domain` exists as its own crate because `#[server]` functions must live in
+# the shared UI crate (`app`) while their bodies need database access. Putting
+# that access in `server` would make `app` and `server` mutually dependent,
+# which Cargo forbids. Splitting it out also keeps every line of server logic
+# free of any Leptos dependency, so the UI layer can be replaced without
+# touching the backend.
+members = [
+  "crates/app",
+  "crates/core",
+  "crates/domain",
+  "crates/frontend",
+  "crates/server",
+]
 
 [workspace.package]
 edition = "2024"
 rust-version = "1.97.1"
 license = "Apache-2.0"
+repository = "https://github.com/analisaperlengkapan/leptos-axum-workspace"
+description = "Production-ready Leptos + Axum full-stack workspace template"
+# These are application crates, not libraries for crates.io. Beyond preventing
+# an accidental `cargo publish`, this is what lets cargo-deny apply
+# `allow-wildcard-paths`: it refuses to exempt path dependencies of a crate that
+# claims to be publishable, since crates.io would reject them anyway.
+publish = false
 
+# ---------------------------------------------------------------------------
+# Shared dependencies
+# ---------------------------------------------------------------------------
 [workspace.dependencies]
-axum = "=0.8.9"
-leptos = "=0.8.20"
+app = { path = "crates/app", default-features = false }
+app-core = { path = "crates/core" }
+app-domain = { path = "crates/domain" }
+
+# Leptos. Pinned to a single minor line so `ssr` and `hydrate` builds never
+# diverge -- a version skew between them produces hydration mismatches that
+# only surface at runtime.
+leptos = "0.8.20"
+leptos_axum = "0.8.10"
+leptos_meta = "0.8.6"
+leptos_router = "0.8.15"
+
+# HTTP stack.
+# NOTE: tower-http is held at 0.6 (0.7 is current) to match the version
+# leptos_axum depends on. Using 0.7 here would pull a second, semver
+# incompatible copy of tower-http into the tree. See docs/adr/0001.
+axum = { version = "0.8.9", default-features = false }
+axum-extra = { version = "0.12.6", default-features = false }
+# Used directly for building and parsing the session cookie, so that logic can
+# live in the domain layer and be unit tested without an HTTP stack.
+cookie = "0.18"
+http = "1"
+tower = { version = "0.5", default-features = false }
+tower-http = { version = "0.6", default-features = false }
+tower_governor = "0.8"
+
+# Runtime.
+tokio = { version = "1", default-features = false }
+
+# Persistence.
+sqlx = { version = "0.9.0", default-features = false, features = [
+  "runtime-tokio",
+  "tls-rustls-ring",
+  "postgres",
+  "macros",
+  "migrate",
+  "chrono",
+  "uuid",
+  # Enables std::net::IpAddr <-> INET, so client addresses are stored in a
+  # column Postgres can validate and index rather than as free-form text.
+  "ipnet",
+] }
+
+# Auth / crypto.
+argon2 = { version = "0.5.3", features = ["std"] }
+# Randomness comes straight from the OS CSPRNG rather than through argon2's
+# re-exported rand_core, whose `OsRng` is feature-gated off by default. One
+# explicit source serves both the password salt and the session token.
+getrandom = "0.3"
+sha2 = "0.11.0"
+
+# Serialization & data.
+chrono = { version = "0.4", default-features = false }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-tokio = { version = "1", features = ["macros", "rt-multi-thread", "net"] }
+uuid = { version = "1.24.0", default-features = false }
+
+# Observability & errors.
+anyhow = "1.0.104"
+thiserror = "2.0.19"
+tracing = { version = "0.1", default-features = false }
+tracing-subscriber = { version = "0.3.23", default-features = false }
+
+# Wasm.
+console_error_panic_hook = "0.1.7"
+wasm-bindgen = "0.2"
+web-sys = "0.3"
+
+# Dev-only.
+reqwest = { version = "0.12", default-features = false }
+
+# ---------------------------------------------------------------------------
+# Lints, applied to every crate via `[lints] workspace = true`
+#
+# These are the guardrails the old workspace lacked entirely: the frontend
+# crate was excluded from clippy in CI, so nothing there was ever linted.
+# ---------------------------------------------------------------------------
+[workspace.lints.rust]
+unsafe_code = "forbid"
+rust_2018_idioms = { level = "warn", priority = -1 }
+unreachable_pub = "warn"
+unused_qualifications = "warn"
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+
+# Panic paths. The server must surface errors as typed values, never abort a
+# worker thread. Crates that legitimately need them (tests, wasm entrypoint)
+# opt out locally with #[allow].
+expect_used = "warn"
+panic = "warn"
+unwrap_used = "warn"
+
+# Correctness / security.
+float_cmp = "deny"
+lossy_float_literal = "deny"
+mem_forget = "deny"
+string_slice = "warn"
+
+# These fire constantly inside Leptos `view!` expansion and async handlers
+# without indicating a real problem.
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
+module_name_repetitions = "allow"
+multiple_crate_versions = "allow"
+must_use_candidate = "allow"
+
+# `#[component]` props are taken by value by design -- the view macro moves them
+# into the reactive graph, which clippy cannot see, so this fires on essentially
+# every component. Router builders are the same shape: they take owned values
+# and hand clones to per-request closures.
+needless_pass_by_value = "allow"
+
+# ---------------------------------------------------------------------------
+# Build profiles
+# ---------------------------------------------------------------------------
+[profile.release]
+codegen-units = 1
+lto = "fat"
+strip = "symbols"
+
+# cargo-leptos builds the wasm library with this profile. Wasm is shipped over
+# the wire, so optimize for size rather than speed.
+[profile.wasm-release]
+inherits = "release"
+codegen-units = 1
+lto = "fat"
+opt-level = "z"
+
+# Dependencies are rebuilt rarely but executed constantly in tests; optimizing
+# them keeps `cargo test` from crawling.
+[profile.dev.package."*"]
+opt-level = 2
+
+# Argon2 in a debug build is unusably slow -- a single hash takes seconds,
+# which would make every auth test time out.
+[profile.dev.package.argon2]
+opt-level = 3
+
+# ---------------------------------------------------------------------------
+# cargo-leptos
+# https://github.com/leptos-rs/cargo-leptos
+# ---------------------------------------------------------------------------
+[[workspace.metadata.leptos]]
+# `name` identifies the project to cargo-leptos; `output-name` is what
+# leptos_config reads at runtime to locate the generated wasm and JS. Both are
+# required: cargo-leptos will not find the project without the first, and
+# `get_configuration` fails with "missing configuration field" without the second.
+name = "app"
+output-name = "app"
+
+# The binary crate serving both SSR and the API, and the cdylib crate compiled
+# to wasm for hydration. They share all UI code through crates/app.
+bin-package = "server"
+lib-package = "frontend"
+
+# No bin-features/lib-features here: `server` and `frontend` each pin the
+# feature they need on their `app` dependency. Doing it in the manifests means
+# neither binary can be built with the wrong half of the feature pair, and a
+# plain `cargo check -p server` behaves the same as a cargo-leptos build.
+lib-profile-release = "wasm-release"
+
+# Generated output. Everything here is disposable; the server reads it at runtime.
+site-root = "target/site"
+site-pkg-dir = "pkg"
+assets-dir = "public"
+
+# cargo-leptos downloads and runs the Tailwind standalone binary itself, so the
+# build has no Node.js or `npx` dependency at all. The previous setup shelled
+# out to `npx tailwindcss@3.4.15` on every build, in Docker and in CI.
+tailwind-input-file = "style/main.css"
+
+site-addr = "127.0.0.1:3000"
+reload-port = 3001
+
+end2end-cmd = "npx playwright test"
+end2end-dir = "end2end"
+
+browserquery = "defaults"

@@ -1,0 +1,70 @@
+# Replaces docker-compose.yml, which hard-coded database credentials in the
+# file, gave the application containers no healthcheck, and set
+# `restart: always` on a development stack so a crash-looping process restarted
+# forever instead of surfacing the failure.
+#
+#   cp .env.example .env && docker compose up --build
+
+name: leptos-axum-workspace
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-app}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      # `pg_isready` alone reports success while the initdb bootstrap is still
+      # running; naming the database and user waits for a server that can
+      # actually serve this application.
+      test:
+        ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-app}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        # Waits for the healthcheck above rather than merely for the container
+        # to exist, so the application does not race the database on first boot.
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-app}
+      APP_ENV: ${APP_ENV:-production}
+      PORT: "3000"
+      SESSION_TTL_SECONDS: ${SESSION_TTL_SECONDS:-604800}
+      # The container is reached directly here. Raise this only to the real
+      # number of reverse proxies you place in front of it.
+      TRUSTED_PROXY_HOPS: ${TRUSTED_PROXY_HOPS:-0}
+      RUST_LOG: ${RUST_LOG:-info,sqlx=warn}
+    ports:
+      - "127.0.0.1:3000:3000"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://127.0.0.1:3000/health/ready"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+volumes:
+  postgres-data:

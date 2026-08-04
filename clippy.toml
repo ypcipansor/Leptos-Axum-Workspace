@@ -1,0 +1,10 @@
+msrv = "1.97.1"
+
+# `view!` trees and route tables legitimately nest deeply.
+excessive-nesting-threshold = 12
+
+# Argon2 parameters, cookie names and header values are compared against
+# literals in tests; flagging every repeat adds noise without value.
+allow-print-in-tests = true
+allow-expect-in-tests = true
+allow-unwrap-in-tests = true

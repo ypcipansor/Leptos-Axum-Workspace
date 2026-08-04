@@ -1,0 +1,68 @@
+name: Feature request
+description: Suggest a capability or improvement
+labels: ["enhancement"]
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the suggestion.
+
+        This is a **template**, so the bar for adding something is a little
+        unusual: every feature here is code that everyone starting a project
+        from it inherits, whether they want it or not. The most useful proposals
+        are things most users would otherwise have to build anyway.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: >
+        Describe the situation, not the solution. What are you trying to do, and
+        what makes it awkward today?
+      placeholder: |
+        When I add a second entity I have to hand-write the same pagination
+        logic each time, because...
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What would you like to see?
+      validations:
+        required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: What else did you consider?
+      description: >
+        Including "do nothing". Knowing which alternatives you weighed, and why
+        you set them aside, is often the most useful part of a proposal.
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Which part of the workspace?
+      multiple: true
+      options:
+        - "app-core (shared types and validation)"
+        - "app-domain (config, database, auth)"
+        - "app (UI and server functions)"
+        - "server (routing, middleware)"
+        - "Build, CI or the container image"
+        - "Documentation"
+        - "Not sure"
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched existing issues for the same idea.
+          required: true
+        - label: >
+            I checked docs/adr/ in case this was already decided against, and if
+            so my proposal says what has changed since.
+          required: true

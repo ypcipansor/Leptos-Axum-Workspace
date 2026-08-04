@@ -1,0 +1,15 @@
+{
+  "name": "end2end",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Browser tests for the Leptos + Axum workspace",
+  "scripts": {
+    "test": "playwright test",
+    "test:ui": "playwright test --ui",
+    "report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.10.2",
+    "@playwright/test": "1.62.0"
+  }
+}

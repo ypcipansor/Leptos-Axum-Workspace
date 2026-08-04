@@ -1,0 +1,38 @@
+# Without this file the entire build context -- including target/ and
+# node_modules/, which are gigabytes -- was uploaded to the daemon on every
+# `docker build`.
+
+# Build outputs
+target/
+**/target/
+end2end/test-results/
+end2end/playwright-report/
+
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Generated styles (cargo-leptos regenerates these inside the image)
+style.css
+**/style.css
+
+# VCS and CI
+.git/
+.github/
+.gitignore
+
+# Local environment -- must never be baked into an image
+.env
+.env.*
+!.env.example
+
+# Editors and OS cruft
+.idea/
+.vscode/
+.DS_Store
+
+# Docs and planning material, irrelevant to the build
+docs/
+*.md
+!README.md
+LICENSE
