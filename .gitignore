@@ -4,24 +4,25 @@ target/
 **/*.rs.bk
 *.pdb
 
-# Leptos/trunk outputs
-site/
-**/dist/
-dist/
+# cargo-leptos output. Everything under target/site is generated on each build.
+# Note: the .sqlx/ directory is deliberately NOT ignored -- it is the committed
+# offline query cache that lets `cargo check` compile the sqlx macros without a
+# live database.
 
-# Tailwind generated CSS
+# Generated Tailwind CSS (cargo-leptos writes it into target/site)
 style.css
 **/style.css
-frontend/style.css
 
 # Playwright outputs
+end2end/test-results/
+end2end/playwright-report/
 test-results/
 **/test-results/
+playwright-report/
 
 # Dependencies
 node_modules/
 **/node_modules/
-.sass-cache/
 
 # Environment
 .env
@@ -35,3 +36,7 @@ node_modules/
 *.ntvs*
 *.njsproj
 *.sln
+
+# OS
+.DS_Store
+Thumbs.db

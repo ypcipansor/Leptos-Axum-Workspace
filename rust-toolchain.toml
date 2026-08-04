@@ -1,4 +1,8 @@
 [toolchain]
 channel = "1.97.1"
 profile = "minimal"
-components = ["rustfmt", "clippy"]
+components = ["clippy", "rustfmt"]
+# The UI crate compiles to both native (SSR) and wasm (hydration). Declaring the
+# target here means a fresh clone can run `cargo leptos build` without a
+# separate `rustup target add`.
+targets = ["wasm32-unknown-unknown"]
