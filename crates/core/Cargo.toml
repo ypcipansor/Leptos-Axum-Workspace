@@ -1,0 +1,23 @@
+[package]
+name = "app-core"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Shared contracts between the Leptos UI and the Axum server"
+
+[lints]
+workspace = true
+
+# This crate is compiled for BOTH the native server and wasm32. Every dependency
+# must be wasm-safe, which is why nothing here touches the filesystem, clock or
+# randomness. Keep it that way.
+[dependencies]
+chrono = { workspace = true, features = ["serde"] }
+serde.workspace = true
+thiserror.workspace = true
+uuid = { workspace = true, features = ["serde"] }
+
+[dev-dependencies]
+serde_json.workspace = true
