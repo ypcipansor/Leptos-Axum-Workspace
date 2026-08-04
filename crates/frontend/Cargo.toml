@@ -1,0 +1,26 @@
+[package]
+name = "frontend"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Wasm entrypoint that hydrates the server-rendered markup"
+
+[lints]
+workspace = true
+
+[lib]
+# A cdylib is what wasm-bindgen needs to emit a loadable module. This crate is
+# only ever built for wasm32; `just lint` checks it against that target
+# explicitly, which is how its code finally gets linted at all.
+crate-type = ["cdylib"]
+
+[dependencies]
+# The `hydrate` feature is pinned here rather than passed on the command line,
+# so the wasm build can never be produced with the server-side feature set.
+app = { workspace = true, features = ["hydrate"] }
+
+console_error_panic_hook.workspace = true
+leptos = { workspace = true, features = ["hydrate"] }
+wasm-bindgen.workspace = true

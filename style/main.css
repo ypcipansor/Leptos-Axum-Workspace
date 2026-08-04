@@ -1,0 +1,123 @@
+@import "tailwindcss";
+
+/* Tailwind v4 discovers class names by scanning source files, but it only
+   knows about web extensions by default -- every utility in this app lives
+   inside a Rust `view!` macro, so the .rs files have to be declared. */
+@source "../crates/app/src/**/*.rs";
+
+/* Dark mode is driven by a class on <html>, set by the blocking script in the
+   document head before first paint. The default v4 variant follows the OS
+   setting only, which would leave the in-app toggle with nothing to switch. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ---------------------------------------------------------------------------
+   Semantic tokens
+
+   Components reference roles -- surface, body, accent -- never raw colours.
+   That is what makes the light and dark palettes swappable here rather than in
+   a `dark:` variant on every element, and it is why adding a third theme later
+   would touch only this file.
+   --------------------------------------------------------------------------- */
+:root {
+  --surface: oklch(100% 0 0);
+  --surface-raised: oklch(100% 0 0);
+  --surface-sunken: oklch(97.5% 0.005 250);
+
+  --text-body: oklch(21% 0.02 255);
+  --text-muted: oklch(52% 0.02 255);
+
+  --border-subtle: oklch(90% 0.008 255);
+
+  --accent: oklch(54% 0.19 264);
+  --accent-strong: oklch(47% 0.19 264);
+  --on-accent: oklch(100% 0 0);
+}
+
+.dark {
+  --surface: oklch(19% 0.02 260);
+  --surface-raised: oklch(23% 0.02 260);
+  --surface-sunken: oklch(15% 0.02 260);
+
+  --text-body: oklch(95% 0.01 255);
+  --text-muted: oklch(70% 0.02 255);
+
+  --border-subtle: oklch(32% 0.02 260);
+
+  --accent: oklch(70% 0.16 264);
+  --accent-strong: oklch(76% 0.16 264);
+  --on-accent: oklch(17% 0.03 264);
+}
+
+/* `inline` makes the generated utilities resolve `var(--surface)` at use time
+   rather than baking in the value, which is what lets the .dark overrides
+   above take effect without duplicating every utility. */
+@theme inline {
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-surface-sunken: var(--surface-sunken);
+
+  --color-body: var(--text-body);
+  --color-muted: var(--text-muted);
+  --color-subtle: var(--border-subtle);
+
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-on-accent: var(--on-accent);
+}
+
+/* Status scales stay fixed across themes; the components pick the light or
+   dark end explicitly, because a "danger" surface needs different contrast
+   handling than a neutral one. */
+@theme {
+  --color-danger-50: oklch(97% 0.02 25);
+  --color-danger-100: oklch(94% 0.04 25);
+  --color-danger-300: oklch(82% 0.11 25);
+  --color-danger-400: oklch(74% 0.15 25);
+  --color-danger-500: oklch(64% 0.19 25);
+  --color-danger-600: oklch(58% 0.21 25);
+  --color-danger-700: oklch(50% 0.19 25);
+  --color-danger-800: oklch(41% 0.15 25);
+  --color-danger-950: oklch(22% 0.08 25);
+
+  --color-success-50: oklch(97% 0.03 155);
+  --color-success-100: oklch(93% 0.06 155);
+  --color-success-300: oklch(80% 0.13 155);
+  --color-success-800: oklch(40% 0.10 155);
+  --color-success-900: oklch(33% 0.08 155);
+  --color-success-950: oklch(22% 0.06 155);
+}
+
+/* ---------------------------------------------------------------------------
+   Base
+   --------------------------------------------------------------------------- */
+@layer base {
+  html {
+    /* Tells the browser to render form controls and scrollbars in the matching
+       scheme, so a dark page does not get a white scrollbar. */
+    color-scheme: light;
+  }
+
+  html.dark {
+    color-scheme: dark;
+  }
+
+  /* Respect a stated preference for reduced motion: the spinner and skeleton
+     pulses are decorative, and for some viewers they are actively harmful. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  /* A visible focus ring is the only way a keyboard user can tell where they
+     are. Never remove it; the components style it rather than hide it. */
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+}
