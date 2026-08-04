@@ -1,0 +1,62 @@
+[package]
+name = "server"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Axum binary serving SSR, hydration assets and server functions"
+
+[lints]
+workspace = true
+
+[[bin]]
+name = "server"
+path = "src/main.rs"
+
+[dependencies]
+# The `ssr` feature is pinned here rather than passed on the command line, so
+# the server binary can never be built against the browser feature set. The
+# frontend crate does the mirror image with `hydrate`; because the two are only
+# ever compiled for different targets, the features never unify.
+app = { workspace = true, features = ["ssr"] }
+app-core.workspace = true
+app-domain.workspace = true
+
+anyhow.workspace = true
+axum = { workspace = true, features = ["http1", "json", "tokio", "macros"] }
+http.workspace = true
+leptos = { workspace = true, features = ["ssr"] }
+leptos_axum.workspace = true
+tokio = { workspace = true, features = [
+  "macros",
+  "rt-multi-thread",
+  "net",
+  "signal",
+  "time",
+] }
+tower = { workspace = true, features = ["util"] }
+tower-http = { workspace = true, features = [
+  "catch-panic",
+  "compression-br",
+  "compression-gzip",
+  "fs",
+  "limit",
+  "request-id",
+  "set-header",
+  "timeout",
+  "trace",
+] }
+tracing.workspace = true
+tracing-subscriber = { workspace = true, features = [
+  "env-filter",
+  "fmt",
+  "json",
+  "std",
+] }
+uuid = { workspace = true, features = ["v4"] }
+
+[dev-dependencies]
+reqwest = { workspace = true, features = ["cookies", "json", "rustls-tls"] }
+serde_json.workspace = true
+sqlx.workspace = true
