@@ -1,10 +1,82 @@
 version: 2
+
 updates:
+  # ---------------------------------------------------------------------------
   - package-ecosystem: cargo
     directory: "/"
     schedule:
       interval: weekly
-  - package-ecosystem: github-actions
+      day: monday
+    open-pull-requests-limit: 5
+    # Without grouping, a routine week produces a dozen separate pull requests
+    # that each need their own CI run and their own review.
+    groups:
+      leptos:
+        # These four move together and must stay on the same minor line, or the
+        # ssr and hydrate builds diverge and hydration breaks at runtime.
+        patterns:
+          - "leptos"
+          - "leptos_*"
+      axum:
+        patterns:
+          - "axum"
+          - "axum-*"
+          - "tower"
+          - "tower-*"
+          - "tower_*"
+          - "http"
+          - "hyper*"
+      database:
+        patterns:
+          - "sqlx"
+          - "sqlx-*"
+      security:
+        # Deliberately its own group so a crypto or randomness bump is never
+        # buried inside a twenty-crate pull request.
+        patterns:
+          - "argon2"
+          - "cookie"
+          - "getrandom"
+          - "sha2"
+      minor-and-patch:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+
+  # ---------------------------------------------------------------------------
+  # Missing entirely before, so the Playwright toolchain silently aged.
+  - package-ecosystem: npm
+    directory: "/end2end"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 3
+    groups:
+      playwright:
+        patterns:
+          - "@playwright/*"
+          - "@axe-core/*"
+
+  # ---------------------------------------------------------------------------
+  # Also missing before. Keeps the base images in the Dockerfile current, which
+  # is where most container CVEs actually arrive.
+  - package-ecosystem: docker
     directory: "/"
     schedule:
       interval: weekly
+      day: monday
+    open-pull-requests-limit: 3
+
+  # ---------------------------------------------------------------------------
+  - package-ecosystem: github-actions
+    directories:
+      - "/"
+      # Composite actions live outside .github/workflows and are skipped unless
+      # their directory is listed.
+      - "/.github/actions/setup-rust"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 3
+    groups:
+      actions:
+        patterns: ["*"]

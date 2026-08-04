@@ -2,173 +2,225 @@ name: CI
 
 on:
   push:
-    branches: ["main"]
+    branches: [main]
   pull_request:
+  workflow_dispatch:
+
+# A new push supersedes the run already in flight for the same ref. Without
+# this, pushing three times to a branch queued three full pipelines.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
 
+env:
+  CARGO_TERM_COLOR: always
+  # Compile the sqlx macros against the committed .sqlx cache rather than
+  # provisioning a database just to expand them.
+  SQLX_OFFLINE: "true"
+  RUST_BACKTRACE: "1"
+
 jobs:
-  native:
+  # ---------------------------------------------------------------------------
+  lint:
+    name: Format and lint
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:alpine
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: postgres
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-    env:
-      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
-      TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
+    timeout-minutes: 30
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
-      - name: Setup Rust
-        uses: dtolnay/rust-toolchain@1.97.1
+      - uses: ./.github/actions/setup-rust
         with:
-          components: rustfmt, clippy
+          wasm: "true"
+          cache-key: lint
 
-      - name: Rust Cache
-        uses: Swatinem/rust-cache@v2
-
-      - name: Cargo fmt
+      - name: Check formatting
         run: cargo fmt --all -- --check
 
-      - name: Cargo clippy
-        run: cargo clippy --workspace --exclude frontend --all-targets -- -D warnings
+      - name: Lint the native build
+        run: cargo clippy -p app-core -p app-domain -p server --all-targets --locked -- -D warnings
 
-      - name: Cargo test
-        run: cargo test --workspace --exclude frontend --all-targets
+      # The gap this closes: the previous workflow passed `--exclude frontend`
+      # to every check, so not one line of browser-side Rust was ever linted.
+      - name: Lint the wasm build
+        run: cargo clippy -p frontend --target wasm32-unknown-unknown --locked -- -D warnings
 
-  frontend-e2e:
+  # ---------------------------------------------------------------------------
+  test:
+    name: Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    # Duplicated with the e2e job below because GitHub Actions cannot share a
+    # `services:` block between jobs -- composite actions may not declare
+    # service containers, and a reusable workflow would cost more than it saves
+    # for eight lines.
     services:
       postgres:
-        image: postgres:alpine
+        image: postgres:16-alpine
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: postgres
-        ports:
-          - 5432:5432
+        ports: ["5432:5432"]
         options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
           --health-timeout 5s
-          --health-retries 5
+          --health-retries 10
+
     env:
-      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
-      TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
+      TEST_DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/postgres
+      DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/postgres
+
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
-      - name: Setup Rust with wasm target
-        uses: dtolnay/rust-toolchain@1.97.1
+      - uses: ./.github/actions/setup-rust
         with:
-          targets: wasm32-unknown-unknown
+          cache-key: test
 
-      - name: Rust Cache
-        uses: Swatinem/rust-cache@v2
+      # Each integration test creates its own database from this server, so the
+      # suite is independent of run order and safe to run in parallel.
+      - name: Run the test suite
+        run: cargo test --workspace --exclude frontend --locked
 
-      - name: Download Trunk
-        run: |
-          mkdir -p "$HOME/.cargo/bin"
-          curl -fsSL https://github.com/trunk-rs/trunk/releases/download/v0.21.1/trunk-x86_64-unknown-linux-gnu.tar.gz | tar -xzf - -C "$HOME/.cargo/bin"
-          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - uses: taiki-e/install-action@67729d5c413db75907f0ad1e39bb04b9c868ff60 # v2
         with:
-          node-version: 20
-          cache: 'npm'
-          cache-dependency-path: |
-            frontend/tests/e2e/package-lock.json
+          tool: sqlx-cli
 
-      - name: Build Tailwind CSS
-        working-directory: frontend
+      # A stale .sqlx cache still compiles, but describes a schema that no
+      # longer exists. This is the only place that mismatch can be caught.
+      - name: Check that the sqlx cache matches the migrations
+        env:
+          SQLX_OFFLINE: "false"
         run: |
-          npx tailwindcss@3.4.15 -c tailwind.config.js -i input.css -o style.css
+          sqlx database create
+          sqlx migrate run
+          cargo sqlx prepare --workspace --check -- --all-targets
 
-      - name: Install frontend e2e dependencies
-        working-directory: frontend/tests/e2e
-        run: npm ci
-
-      - name: Playwright Cache
-        uses: actions/cache@v4
-        id: playwright-cache
-        with:
-          path: ~/.cache/ms-playwright
-          key: ${{ runner.os }}-playwright-${{ hashFiles('frontend/tests/e2e/package-lock.json') }}
-
-      - name: Install Playwright browsers
-        if: steps.playwright-cache.outputs.cache-hit != 'true'
-        working-directory: frontend/tests/e2e
-        run: npx playwright install --with-deps
-
-      - name: Install Playwright OS dependencies (if cache hit)
-        if: steps.playwright-cache.outputs.cache-hit == 'true'
-        working-directory: frontend/tests/e2e
-        run: npx playwright install-deps
-
-      - name: Build Backend
-        run: cargo build -p backend
-
-      - name: Start Backend in Background
-        run: |
-          cargo run -p backend &
-          # Wait for backend to be ready
-          READY=0
-          for i in {1..30}; do
-            if curl -s http://127.0.0.1:3000/api/health; then
-              READY=1
-              break
-            fi
-            sleep 1
-          done
-          if [ $READY -ne 1 ]; then
-            echo "Error: Backend failed to start!"
-            exit 1
-          fi
-
-      - name: Run frontend e2e
-        working-directory: frontend/tests/e2e
-        run: npm run e2e
-
-  docker-build:
+  # ---------------------------------------------------------------------------
+  build:
+    name: Release build
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - uses: ./.github/actions/setup-rust
+        with:
+          wasm: "true"
+          cache-key: build
 
-      - name: Build Backend Docker Image
-        uses: docker/build-push-action@v5
+      - uses: taiki-e/install-action@67729d5c413db75907f0ad1e39bb04b9c868ff60 # v2
+        with:
+          tool: cargo-leptos
+
+      # Produces the server binary, the wasm bundle and the stylesheet in one
+      # step. cargo-leptos fetches the standalone Tailwind binary itself, so
+      # there is no Node.js here and no unpinned `npx tailwindcss@...` download.
+      - name: Build
+        run: cargo leptos build --release
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: site
+          path: |
+            target/release/server
+            target/site
+          retention-days: 7
+
+  # ---------------------------------------------------------------------------
+  e2e:
+    name: Browser tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: app
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres -d app"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/app
+      APP_ENV: development
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: ./.github/actions/setup-rust
+        with:
+          wasm: "true"
+          cache-key: e2e
+
+      - uses: taiki-e/install-action@67729d5c413db75907f0ad1e39bb04b9c868ff60 # v2
+        with:
+          tool: cargo-leptos
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: end2end/package-lock.json
+
+      - name: Install Playwright
+        working-directory: end2end
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium firefox
+
+      # Playwright's webServer starts `cargo leptos serve` and waits for the
+      # port, replacing the previous `cargo run -p backend &` plus a fixed
+      # sleep, which raced the server whenever the cache was cold.
+      - name: Run the browser tests
+        working-directory: end2end
+        run: npx playwright test
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report
+          path: |
+            end2end/playwright-report
+            end2end/test-results
+          retention-days: 7
+
+  # ---------------------------------------------------------------------------
+  docker:
+    name: Container image
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4
+
+      # Build only. Publishing lives in release.yml, so a pull request from a
+      # fork can never push an image.
+      - uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7
         with:
           context: .
-          file: backend/Dockerfile
           push: false
-          tags: sim-backend:latest
-          cache-from: type=gha,scope=backend
-          cache-to: type=gha,mode=max,scope=backend
+          load: true
+          tags: leptos-axum-workspace:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
-      - name: Build Frontend Docker Image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: frontend/Dockerfile
-          push: false
-          tags: sim-frontend:latest
-          cache-from: type=gha,scope=frontend
-          cache-to: type=gha,mode=max,scope=frontend
+      - name: Verify the image contents and user
+        run: |
+          # The build artefacts must actually be in the image.
+          docker run --rm --entrypoint sh leptos-axum-workspace:ci -c \
+            'test -x ./server && test -d ./site/pkg'
+          # And it must not run as root.
+          test "$(docker run --rm --entrypoint id leptos-axum-workspace:ci -u)" != "0"

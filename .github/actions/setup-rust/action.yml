@@ -1,0 +1,40 @@
+name: Set up Rust
+description: >
+  Installs the pinned toolchain from rust-toolchain.toml, optionally adds the
+  wasm target, and restores the build cache. Extracted so the four jobs that
+  need it cannot drift apart.
+
+inputs:
+  wasm:
+    description: Also install the wasm32-unknown-unknown target.
+    required: false
+    default: "false"
+  cache-key:
+    description: Extra cache key suffix, to keep jobs from evicting each other.
+    required: false
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    # No toolchain action needed: rustup reads rust-toolchain.toml and installs
+    # the pinned version on first invocation, so the version lives in exactly
+    # one place rather than being repeated in every workflow.
+    - name: Install the pinned toolchain
+      shell: bash
+      run: |
+        rustup show active-toolchain || rustup toolchain install
+        rustup component add clippy rustfmt
+
+    - name: Add the wasm target
+      if: inputs.wasm == 'true'
+      shell: bash
+      run: rustup target add wasm32-unknown-unknown
+
+    - name: Restore the cargo cache
+      uses: Swatinem/rust-cache@42dc69e1aa15d09112580998cf2ef0119e2e91ae # v2
+      with:
+        key: ${{ inputs.cache-key }}
+        # The whole workspace shares one lockfile; caching per job would store
+        # near-identical copies and evict each other.
+        shared-key: workspace

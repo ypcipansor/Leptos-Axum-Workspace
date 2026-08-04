@@ -1,23 +1,84 @@
 name: Bug report
-description: Laporkan bug yang ditemukan pada template.
+description: Something in the template does not work as described
 title: "[Bug]: "
 labels: ["bug"]
+
 body:
+  - type: markdown
+    attributes:
+      value: |
+        If this is a **security vulnerability**, please do not file it here —
+        report it privately. See SECURITY.md.
+
   - type: textarea
     id: description
     attributes:
-      label: Deskripsi bug
-      description: Jelaskan perilaku yang terjadi.
+      label: What happened?
+      description: What did you expect, and what happened instead?
     validations:
       required: true
+
   - type: textarea
     id: steps
     attributes:
-      label: Langkah reproduksi
-      description: Tuliskan langkah demi langkah.
+      label: Steps to reproduce
+      description: >
+        Starting from a fresh clone where possible. A reproduction someone else
+        can run is worth more than any amount of description.
       placeholder: |
-        1. ...
-        2. ...
-        3. ...
+        1. cp .env.example .env
+        2. just migrate
+        3. just dev
+        4. Open /signin and ...
     validations:
       required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant output
+      description: >
+        Error messages, log lines, or a failing test. If you have the
+        `x-request-id` from the response header, include it — every log line for
+        that request carries the same value.
+      render: shell
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Where does it happen?
+      options:
+        - "Running locally (just dev)"
+        - "Running the tests"
+        - "Building the container image"
+        - "In a deployed environment"
+        - "Not sure"
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Commit or version
+      placeholder: "e.g. main @ abc1234"
+    validations:
+      required: true
+
+  - type: input
+    id: environment
+    attributes:
+      label: OS and Rust version
+      description: Output of `rustc -vV` plus your operating system.
+      placeholder: "e.g. Ubuntu 24.04, rustc 1.97.1"
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched existing issues.
+          required: true
+        - label: >
+            I checked docs/runbook.md, in case this is a documented
+            configuration issue rather than a defect.
+          required: true
