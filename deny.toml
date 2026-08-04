@@ -9,7 +9,19 @@ all-features = false
 [advisories]
 version = 2
 yanked = "deny"
-ignore = []
+
+# Both of these are "unmaintained" notices, not vulnerabilities: no exploit, no
+# patched version to move to. Both arrive transitively through the Leptos macro
+# machinery, so nothing in this repository can drop them.
+#
+# Revisit when the upstream chain migrates away; `cargo tree -i <crate>` shows
+# who is still pulling them in.
+ignore = [
+  # `paste` is feature-complete and archived by its author.
+  "RUSTSEC-2024-0436",
+  # `proc-macro-error2` author confirmed it is no longer maintained.
+  "RUSTSEC-2026-0173",
+]
 
 [licenses]
 version = 2
@@ -29,6 +41,10 @@ allow = [
   "Unicode-3.0",
   "Unlicense",
   "Zlib",
+  # webpki-roots ships the Mozilla CA bundle under the Linux Foundation's
+  # Community Data License Agreement. Permissive, and it covers data rather
+  # than code.
+  "CDLA-Permissive-2.0",
 ]
 confidence-threshold = 0.9
 
@@ -45,6 +61,10 @@ license-files = [{ path = "LICENSE", hash = 0xbd0e_ed23 }]
 [bans]
 multiple-versions = "warn"
 wildcards = "deny"
+# The crates in this workspace depend on each other by path, which has no
+# version requirement to state. Without this they are all reported as wildcards,
+# which is what `wildcards = "deny"` is meant to catch in *registry* deps.
+allow-wildcard-paths = true
 # Nothing should reach for a TLS stack other than the rustls one sqlx and
 # reqwest are configured with; pulling OpenSSL back in would break the
 # distroless-style runtime image.

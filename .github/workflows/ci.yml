@@ -114,9 +114,7 @@ jobs:
           wasm: "true"
           cache-key: build
 
-      - uses: taiki-e/install-action@67729d5c413db75907f0ad1e39bb04b9c868ff60 # v2
-        with:
-          tool: cargo-leptos
+      - uses: ./.github/actions/setup-cargo-leptos
 
       # Produces the server binary, the wasm bundle and the stylesheet in one
       # step. cargo-leptos fetches the standalone Tailwind binary itself, so
@@ -164,9 +162,7 @@ jobs:
           wasm: "true"
           cache-key: e2e
 
-      - uses: taiki-e/install-action@67729d5c413db75907f0ad1e39bb04b9c868ff60 # v2
-        with:
-          tool: cargo-leptos
+      - uses: ./.github/actions/setup-cargo-leptos
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:

@@ -22,6 +22,11 @@ rust-version = "1.97.1"
 license = "Apache-2.0"
 repository = "https://github.com/analisaperlengkapan/leptos-axum-workspace"
 description = "Production-ready Leptos + Axum full-stack workspace template"
+# These are application crates, not libraries for crates.io. Beyond preventing
+# an accidental `cargo publish`, this is what lets cargo-deny apply
+# `allow-wildcard-paths`: it refuses to exempt path dependencies of a crate that
+# claims to be publishable, since crates.io would reject them anyway.
+publish = false
 
 # ---------------------------------------------------------------------------
 # Shared dependencies

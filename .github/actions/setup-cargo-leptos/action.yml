@@ -1,0 +1,44 @@
+name: Set up cargo-leptos
+description: >
+  Installs a pinned, glibc-linked cargo-leptos from its GitHub release.
+
+inputs:
+  version:
+    description: cargo-leptos release tag, without the leading "v".
+    required: false
+    default: "0.3.7"
+  tailwind-version:
+    description: Tailwind CSS version for cargo-leptos to fetch.
+    required: false
+    default: "v4.3.3"
+
+runs:
+  using: composite
+  steps:
+    # Deliberately not taiki-e/install-action here.
+    #
+    # That action installs the *musl* build of cargo-leptos, which then fetches
+    # the musl build of the standalone Tailwind binary. GitHub's runners are
+    # glibc, so executing it fails with a bare "No such file or directory" --
+    # the dynamic loader it names does not exist. The error names neither
+    # Tailwind nor musl, so it is worth not rediscovering.
+    #
+    # The gnu asset matches both the runner and the Dockerfile, so CI and the
+    # image now build styles the same way.
+    - name: Install cargo-leptos
+      shell: bash
+      env:
+        VERSION: ${{ inputs.version }}
+      run: |
+        set -euo pipefail
+        url="https://github.com/leptos-rs/cargo-leptos/releases/download/v${VERSION}/cargo-leptos-x86_64-unknown-linux-gnu.tar.gz"
+        curl --fail --location --silent --show-error "$url" -o /tmp/cargo-leptos.tar.gz
+        tar -xzf /tmp/cargo-leptos.tar.gz -C /tmp
+        install -m0755 /tmp/cargo-leptos-x86_64-unknown-linux-gnu/cargo-leptos "$HOME/.cargo/bin/cargo-leptos"
+        cargo leptos --version
+
+    # Pinned so a new upstream Tailwind release cannot change the generated CSS
+    # under an unrelated pull request.
+    - name: Pin the Tailwind version
+      shell: bash
+      run: echo "LEPTOS_TAILWIND_VERSION=${{ inputs.tailwind-version }}" >> "$GITHUB_ENV"

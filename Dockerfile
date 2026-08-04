@@ -49,9 +49,13 @@ FROM chef AS builder
 # Dependencies are compiled from the recipe alone, so editing application
 # source does not rebuild them. This is the difference between a ten-second
 # rebuild and a ten-minute one.
+#
+# Native only. A recipe describes the whole workspace, so cooking it for
+# wasm32 would try to compile the server's dependencies -- tokio, mio, sqlx --
+# for a target they cannot build for, and fail. The wasm dependencies are built
+# during `cargo leptos build` below; they are a small fraction of the tree.
 COPY --from=planner /build/recipe.json recipe.json
 RUN cargo chef cook --release --recipe-path recipe.json
-RUN cargo chef cook --release --target wasm32-unknown-unknown --recipe-path recipe.json
 
 COPY . .
 

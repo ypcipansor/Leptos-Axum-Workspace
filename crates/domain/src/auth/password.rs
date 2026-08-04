@@ -3,6 +3,7 @@ use std::sync::LazyLock;
 use app_core::Password;
 use argon2::Argon2;
 use argon2::password_hash::{PasswordHash, PasswordHasher, PasswordVerifier, SaltString};
+use base64ct::{Base64UrlUnpadded, Encoding};
 
 use crate::error::DomainError;
 
@@ -55,7 +56,15 @@ pub async fn verify_dummy(password: Password) -> Result<(), DomainError> {
 }
 
 static DUMMY_HASH: LazyLock<Result<PasswordHashString, String>> = LazyLock::new(|| {
-    hash_blocking("timing-equalisation-reference-value").map_err(|e| e.to_string())
+    // Drawn from the CSPRNG at startup rather than written as a literal. The
+    // value is irrelevant -- nothing ever verifies against it successfully, and
+    // it is discarded after the first hash -- but generating it means the
+    // binary carries no constant that reads as a credential, to a reviewer or
+    // to a static analyser.
+    let mut bytes = [0_u8; 32];
+    getrandom::fill(&mut bytes).map_err(|e| e.to_string())?;
+
+    hash_blocking(&Base64UrlUnpadded::encode_string(&bytes)).map_err(|e| e.to_string())
 });
 
 fn dummy_hash() -> Result<&'static PasswordHashString, DomainError> {

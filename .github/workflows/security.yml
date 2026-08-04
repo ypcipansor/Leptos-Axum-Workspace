@@ -45,27 +45,18 @@ jobs:
         run: cargo deny --all-features check
 
   # ---------------------------------------------------------------------------
-  codeql:
-    name: CodeQL
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    permissions:
-      contents: read
-      security-events: write
-    strategy:
-      fail-fast: false
-      matrix:
-        # GitHub Actions workflows are themselves code with permissions and
-        # secrets, and are worth analysing.
-        language: [actions]
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-
-      - uses: github/codeql-action/init@0b88f91c1c313eec6a3c4ee6b8342cb564c2060c # v4
-        with:
-          language: ${{ matrix.language }}
-
-      - uses: github/codeql-action/analyze@0b88f91c1c313eec6a3c4ee6b8342cb564c2060c # v4
+  # There is deliberately no CodeQL job here.
+  #
+  # This repository has CodeQL *default setup* enabled, which already analyses
+  # Rust, JavaScript/TypeScript and Actions -- strictly more than a job here
+  # would. GitHub also refuses to accept both at once, rejecting the upload with
+  # "CodeQL analyses from advanced configurations cannot be processed when the
+  # default setup is enabled", so an advanced job cannot merely be redundant:
+  # it fails the build.
+  #
+  # If this ever needs custom queries or a non-default build mode, disable
+  # default setup in the repository's security settings first, then add the job
+  # back here.
 
   # ---------------------------------------------------------------------------
   dependency-review:
