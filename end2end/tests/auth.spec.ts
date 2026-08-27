@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { PASSWORD, signIn, signUp, uniqueUsername } from './support';
+import { PASSWORD, signIn, signUp, uniqueUsername, waitForHydration } from './support';
 
 test.describe('authentication', () => {
   test('a new account can be created and lands on the dashboard', async ({ page }) => {
@@ -21,14 +21,20 @@ test.describe('authentication', () => {
     // These come from the same parser the server runs. The point of the shared
     // crate is that this message and the server's cannot disagree.
     await page.goto('/signup');
+    await waitForHydration(page);
 
+    // "must be" distinguishes the error from the field hint, which also
+    // mentions the minimum length; the plain regex would match both.
     await page.getByLabel('Username').fill('ab');
-    await expect(page.getByText(/at least 3 characters/i)).toBeVisible();
+    await expect(page.getByText(/must be at least 3 characters/i)).toBeVisible();
 
     await page.getByLabel('Password').fill('short');
-    await expect(page.getByText(/at least 12 characters/i)).toBeVisible();
+    await expect(page.getByText(/must be at least 12 characters/i)).toBeVisible();
 
-    await expect(page.getByRole('button', { name: 'Create account' })).toBeDisabled();
+    // The submit button stays enabled even for invalid input. Disabling it
+    // would be rendered into the initial HTML and, with JavaScript disabled,
+    // never re-enabled -- breaking the no-JS form post the suite relies on.
+    // The server rejects the same invalid value with the same parser instead.
   });
 
   test('the session cookie is not readable from JavaScript', async ({ page, context }) => {
@@ -52,7 +58,7 @@ test.describe('authentication', () => {
   test('wrong credentials are rejected with a non-specific message', async ({ page }) => {
     const username = uniqueUsername();
     await signUp(page, username);
-    await page.getByRole('button', { name: 'Sign out' }).click();
+    await page.getByRole('button', { name: 'Sign out', exact: true }).click();
     await expect(page).toHaveURL('/signin');
 
     await page.getByLabel('Username').fill(username);
@@ -68,7 +74,7 @@ test.describe('authentication', () => {
   test('signing out returns to the sign-in page and ends the session', async ({ page }) => {
     await signUp(page, uniqueUsername());
 
-    await page.getByRole('button', { name: 'Sign out' }).click();
+    await page.getByRole('button', { name: 'Sign out', exact: true }).click();
     await expect(page).toHaveURL('/signin');
 
     // The dashboard must not be reachable again by navigating straight to it.
@@ -79,7 +85,7 @@ test.describe('authentication', () => {
   test('an existing account can sign back in', async ({ page }) => {
     const username = uniqueUsername();
     await signUp(page, username);
-    await page.getByRole('button', { name: 'Sign out' }).click();
+    await page.getByRole('button', { name: 'Sign out', exact: true }).click();
 
     await signIn(page, username);
     await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();

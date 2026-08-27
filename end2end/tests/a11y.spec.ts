@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
-import { signUp, uniqueUsername } from './support';
+import { signUp, uniqueUsername, waitForHydration } from './support';
 
 /**
  * Accessibility checks.
@@ -47,6 +47,7 @@ test.describe('accessibility', () => {
     // Contrast is the failure mode a second theme introduces most often, and
     // it is invisible to anyone testing only the default one.
     await page.goto('/signin');
+    await waitForHydration(page);
     await page.getByRole('button', { name: 'Toggle dark mode' }).click();
 
     const results = await scan(page);

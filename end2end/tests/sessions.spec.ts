@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { PASSWORD, signIn, signUp, uniqueUsername } from './support';
+import { PASSWORD, signIn, signUp, uniqueUsername, waitForHydration } from './support';
 
 test.describe('session management', () => {
   test('the current device is listed and labelled', async ({ page }) => {
@@ -71,6 +71,7 @@ test.describe('session management', () => {
 test.describe('theme', () => {
   test('the dark mode choice survives a reload', async ({ page }) => {
     await page.goto('/signin');
+    await waitForHydration(page);
 
     const isDark = () =>
       page.evaluate(() => document.documentElement.classList.contains('dark'));
