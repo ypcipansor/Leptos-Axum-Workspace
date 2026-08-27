@@ -38,3 +38,7 @@ runs:
         # The whole workspace shares one lockfile; caching per job would store
         # near-identical copies and evict each other.
         shared-key: workspace
+        # Save the cache even when the job fails. Otherwise a cold-cache
+        # failure leaves the cache empty, which guarantees the next run is
+        # cold again -- the loop that made the e2e job unpassable.
+        cache-on-failure: "true"
