@@ -43,10 +43,6 @@ pub fn SignUpPage() -> impl IntoView {
         _ => None,
     });
 
-    let can_submit = Memo::new(move |_| {
-        Username::parse(&username.get()).is_ok() && Password::parse(&password.get()).is_ok()
-    });
-
     view! {
         <Title text="Create an account" />
 
@@ -71,7 +67,6 @@ pub fn SignUpPage() -> impl IntoView {
                         hint=format!("3 to {USERNAME_MAX_LEN} characters: letters, digits, '.', '-' and '_'.")
                         maxlength=USERNAME_MAX_LEN
                         error=username_error
-                        value=username
                         on_input=Callback::new(move |value| set_username.set(value))
                     />
 
@@ -85,13 +80,10 @@ pub fn SignUpPage() -> impl IntoView {
                         maxlength=PASSWORD_MAX_LEN
                         minlength=PASSWORD_MIN_LEN
                         error=password_error
-                        value=password
                         on_input=Callback::new(move |value| set_password.set(value))
                     />
 
-                    <Button pending=action.pending() disabled=Signal::derive(move || !can_submit.get())>
-                        "Create account"
-                    </Button>
+                    <Button pending=action.pending()>"Create account"</Button>
                 </ActionForm>
             </Card>
 

@@ -28,9 +28,10 @@ thiserror.workspace = true
 uuid = { workspace = true, features = ["serde"] }
 
 # Leptos already depends on web-sys, but only enables the bindings it needs
-# itself. `Storage` is required by the theme toggle; because cargo features are
-# additive, declaring it here turns it on for `leptos::web_sys` too.
-web-sys = { workspace = true, features = ["DomTokenList", "Storage"] }
+# itself. `Storage` and `DomTokenList` are required by the theme toggle (and
+# `DomRect` for the reflow it forces); because cargo features are additive,
+# declaring them here turns them on for `leptos::web_sys` too.
+web-sys = { workspace = true, features = ["DomRect", "DomTokenList", "Storage"] }
 
 # SSR-only. These are what make `#[server]` bodies able to reach the database;
 # under `hydrate` none of them are compiled in, so no database or Axum code is

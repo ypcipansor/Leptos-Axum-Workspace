@@ -78,8 +78,19 @@ fn toggle_theme() {
             return;
         };
 
+        // Suppress colour transitions for the duration of the flip, or every
+        // `transition-colors` element animates the palette change and the
+        // foreground and background cross through a low-contrast intermediate.
+        let _ = root.class_list().add_1("theme-switching");
+
         let now_dark = !root.class_list().contains("dark");
         let _ = root.class_list().toggle_with_force("dark", now_dark);
+
+        // Force a reflow so the new palette is committed while transitions are
+        // still suppressed, before the suppression class comes off again.
+        let _ = root.get_bounding_client_rect();
+
+        let _ = root.class_list().remove_1("theme-switching");
 
         // Storage access throws in some privacy modes; a failure here should
         // change the theme for this page rather than break the button.
