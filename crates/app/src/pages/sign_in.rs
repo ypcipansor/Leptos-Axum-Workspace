@@ -3,7 +3,7 @@ use leptos::prelude::*;
 use leptos_meta::Title;
 use leptos_router::components::A;
 
-use crate::components::{Alert, Button, Card, TextField};
+use crate::components::{Alert, Button, Card, TextField, ThemeToggle};
 use crate::server::SignIn;
 
 /// Sign-in.
@@ -24,7 +24,10 @@ pub fn SignInPage() -> impl IntoView {
     view! {
         <Title text="Sign in" />
 
-        <main class="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center gap-6 px-4 py-12">
+        <main class="relative mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center gap-6 px-4 py-12">
+            <div class="absolute right-4 top-4">
+                <ThemeToggle />
+            </div>
             <header class="text-center">
                 <h1 class="text-2xl font-semibold text-body">"Sign in"</h1>
                 <p class="mt-1 text-sm text-muted">"Welcome back."</p>

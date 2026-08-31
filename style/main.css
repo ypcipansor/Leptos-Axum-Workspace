@@ -120,4 +120,15 @@
     outline: 2px solid var(--accent);
     outline-offset: 2px;
   }
+
+  /* While the theme class is being flipped, colour transitions are disabled.
+     Otherwise every `transition-colors` element animates the palette change and
+     the foreground and background cross through a low-contrast intermediate,
+     which a contrast scan can catch mid-transition. */
+  html.theme-switching,
+  html.theme-switching *,
+  html.theme-switching *::before,
+  html.theme-switching *::after {
+    transition: none !important;
+  }
 }
