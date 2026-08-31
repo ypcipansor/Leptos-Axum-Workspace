@@ -1,5 +1,6 @@
 use leptos::prelude::*;
 use leptos_meta::{HashedStylesheet, Meta, MetaTags, Title, provide_meta_context};
+use leptos_router::SsrMode;
 use leptos_router::components::{Redirect, Route, Router, Routes};
 use leptos_router::path;
 
@@ -52,7 +53,15 @@ pub fn App() -> impl IntoView {
         // signal, so none of them did.
         <Router>
             <Routes fallback=NotFoundPage>
-                <Route path=path!("/") view=HomeRoute />
+                // `Async` waits for the auth and session resources on the
+                // server and renders the resolved `<Suspense>` content inline
+                // in the initial HTML. The default out-of-order mode streams
+                // that content in a `<template>` that only the hydration
+                // runtime splices into the DOM, so with JavaScript disabled the
+                // dashboard never appears -- which is what the no-JS e2e suite
+                // asserts against. The server and client trees stay
+                // structurally identical, so hydration does not duplicate.
+                <Route path=path!("/") view=HomeRoute ssr=SsrMode::Async />
                 <Route path=path!("/signin") view=SignInPage />
                 <Route path=path!("/signup") view=SignUpPage />
             </Routes>

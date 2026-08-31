@@ -101,8 +101,11 @@ fn SessionTable(rows: Vec<SessionSummary>, revoke: ServerAction<RevokeSession>) 
 
     view! {
         // Wide tables must scroll inside their own container, never make the
-        // page scroll sideways on a phone.
-        <div class="overflow-x-auto rounded-xl border border-subtle bg-surface-raised">
+        // page scroll sideways on a phone. `relative` makes this the containing
+        // block for the sr-only caption/action text: `sr-only` is absolutely
+        // positioned, and without a positioned ancestor it would resolve against
+        // <html>, escaping the clip and still widening the page on a phone.
+        <div class="relative overflow-x-auto rounded-xl border border-subtle bg-surface-raised">
             <table class="w-full min-w-[42rem] text-left text-sm">
                 <caption class="sr-only">"Your active sessions"</caption>
                 <thead class="border-b border-subtle text-xs uppercase tracking-wide text-muted">

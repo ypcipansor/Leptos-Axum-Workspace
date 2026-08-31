@@ -21,7 +21,6 @@ pub fn TextField(
     #[prop(optional)] maxlength: Option<usize>,
     #[prop(optional)] minlength: Option<usize>,
     #[prop(default = true)] required: bool,
-    #[prop(into, optional)] value: Signal<String>,
     #[prop(optional)] on_input: Option<Callback<String>>,
 ) -> impl IntoView {
     let hint_id = format!("{id}-hint");
@@ -59,7 +58,6 @@ pub fn TextField(
                 required=required
                 maxlength=maxlength.map(|v| v.to_string())
                 minlength=minlength.map(|v| v.to_string())
-                prop:value=move || value.get()
                 aria-invalid=move || error.get().map(|_| "true")
                 aria-describedby=described_by
                 on:input=move |ev| {
