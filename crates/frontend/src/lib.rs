@@ -16,4 +16,11 @@ pub fn hydrate() {
     console_error_panic_hook::set_once();
 
     leptos::mount::hydrate_body(app::App);
+
+    // Mark the document once the page is interactive. End-to-end tests wait on
+    // this: typing or clicking before hydration finishes loses the input, so
+    // without a marker they would have to guess at a fixed delay.
+    if let Some(body) = leptos::prelude::document().body() {
+        let _ = body.set_attribute("data-hydrated", "true");
+    }
 }
