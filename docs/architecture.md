@@ -2,6 +2,9 @@
 
 How a request moves through the system, and where each guarantee is enforced.
 
+For what the UI looks like and how a visitor navigates it, see the screenshots
+and route table in the [README](../README.md#screens).
+
 ## The shape of it
 
 One process serves everything: server-rendered HTML, the hydration bundle, the

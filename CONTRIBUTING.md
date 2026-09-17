@@ -57,6 +57,13 @@ startup will refuse.
 **Accessibility, if you touched the UI.** Components own their own labelling and
 live regions; `just e2e` runs an axe-core scan over every page in both themes.
 
+**A note in `CHANGELOG.md`, if the behaviour changed.** Notable changes go under
+`## [Unreleased]`, following [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
+
+**Updated screenshots, if a page's appearance changed.** The README shows a
+screenshot of every page (see `docs/screenshots/`). Refresh them against the
+release build so the docs keep matching the real UI.
+
 See [`AGENTS.md`](AGENTS.md) for the layering rules and the security expectations
 each layer has to preserve, and [`docs/adr/`](docs/adr/) for why the significant
 decisions were made.

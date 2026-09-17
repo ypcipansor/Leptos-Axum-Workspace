@@ -39,8 +39,10 @@ contract all changed.
   scheduled scans.
 - **Release pipeline** publishing a multi-architecture image to GHCR with an SBOM
   and build provenance.
-- `CONTRIBUTING.md`, `SECURITY.md`, `CODE_OF_CONDUCT.md`, an architecture
-  overview, an operations runbook, and three ADRs.
+- `CONTRIBUTING.md`, `SECURITY.md`, `CODE_OF_CONDUCT.md`, a `CHANGELOG.md`,
+  an architecture overview, an operations runbook, and three ADRs.
+- **Screenshots of every page** in the README, captured from the release build,
+  alongside a route table and a testing guide.
 
 ### Changed
 
