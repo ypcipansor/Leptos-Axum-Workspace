@@ -5,9 +5,41 @@ binary that server-renders HTML, hydrates it in the browser, and talks to
 Postgres through type-checked queries — with authentication, observability,
 CI/CD and a container image already wired up.
 
-```
-Rust 1.97.1 · Leptos 0.8 (SSR + hydration) · Axum 0.8 · sqlx 0.9 · Tailwind CSS v4
-```
+> **Stack:** Rust 1.97.1 · Leptos 0.8 (SSR + hydration) · Axum 0.8 · sqlx 0.9 ·
+> Tailwind CSS v4 · PostgreSQL 16 · Playwright
+
+## Contents
+
+- [Screens](#screens)
+- [Why this exists](#why-this-exists)
+- [Quick start](#quick-start)
+- [Project layout](#project-layout)
+- [What is included](#what-is-included)
+- [Pages](#pages)
+- [Testing](#testing)
+- [Common tasks](#common-tasks)
+- [Configuration](#configuration)
+- [Documentation](#documentation)
+- [A note on Leptos](#a-note-on-leptos)
+- [License](#license)
+
+---
+
+## Screens
+
+Every route is server-rendered and usable before JavaScript loads. A dark mode
+is applied before first paint, and a real 404 page returns a 404 status.
+
+| | |
+| --- | --- |
+| **Sign in** — `/signin` | **Create account** — `/signup` |
+| <img src="docs/screenshots/signin.png" alt="Sign in page" width="600"> | <img src="docs/screenshots/signup.png" alt="Create account page" width="600"> |
+| **Dashboard** — `/` (signed in) | **Not found** — any unmatched route |
+| <img src="docs/screenshots/dashboard.png" alt="Dashboard page" width="600"> | <img src="docs/screenshots/404.png" alt="404 page" width="600"> |
+
+> Screenshots are captured from the release build with a desktop viewport in the
+> default (light) theme. A signed-in account shows the session management table;
+> the "This device" badge marks the current session.
 
 ## Why this exists
 
@@ -50,7 +82,7 @@ docker compose up --build
 
 Run `just` on its own to see every available task.
 
-## Layout
+## Project layout
 
 ```text
 .
@@ -102,6 +134,39 @@ as a non-root user with a healthcheck. CI lints every crate on both targets, run
 unit, integration, browser and accessibility tests, audits the dependency tree,
 and publishes a multi-architecture image with an SBOM and build provenance.
 
+## Pages
+
+| Route | Page | Behaviour |
+| --- | --- | --- |
+| `/` | Dashboard | Authenticated landing page. Guards a `current_user()` check on the server, redirecting signed-out visitors to `/signin`. Lists active sessions with revoke controls. |
+| `/signin` | Sign in | Server-side validation only — failures are deliberately indistinguishable so usernames cannot be enumerated. Rate limited per (address, username). |
+| `/signup` | Create an account | Live per-field validation that runs the same `Username::parse` / `Password::parse` the server uses, in the browser, before submit. |
+| any other path | Not found | Real 404 — returns a non-200 status, and a "Back to the dashboard" link. |
+
+There is also a `ThemeToggle` on every page that switches light/dark mode without
+a flash, applied before first paint.
+
+## Testing
+
+`just ci` is the single gate — it runs exactly what the pipeline runs, in order:
+format check, clippy on native *and* wasm, unit + integration tests, dependency
+audit, and the release build.
+
+Browser tests run separately against a real `cargo leptos serve`:
+
+- **End-to-end suites** (Chromium, Firefox, mobile) exercise auth and sessions
+  with role- and label-based selectors.
+- **A `no-javascript` project** proves server rendering works with scripting
+  disabled — it would fail against any client-rendered build.
+- **Accessibility scans** (axe-core) run over every page in light *and* dark
+  themes, and a contrast violation is a build failure.
+
+To update the committed `.sqlx` query cache after changing a query:
+
+```bash
+just prepare
+```
+
 ## Common tasks
 
 | Command | What it does |
@@ -141,6 +206,11 @@ Two settings deserve attention before deploying:
   the alternatives that were rejected.
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) — how to propose a change.
 - [`SECURITY.md`](SECURITY.md) — how to report a vulnerability.
+- [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) — the community code of conduct.
+- [`CHANGELOG.md`](CHANGELOG.md) — keep a changelog, broken down by version.
+
+Also see [`AGENTS.md`](AGENTS.md) for the conventions enforced on every change:
+layering and security expectations.
 
 ## A note on Leptos
 
